@@ -1,0 +1,9 @@
+app/static/*
+!app/static/favicon.ico
+
+app/secrets.env
+app/credentials
+
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store

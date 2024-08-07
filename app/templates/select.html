@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unicorn Reflections</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rowdies&family=Roboto:wght@300;400&display=swap');
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #87CEEB, #00CED1);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 40px;
+            width: 80%;
+            max-width: 800px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        .title-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-family: 'Rowdies', cursive;
+            text-align: center;
+            color: #FF6B6B;
+            margin: 0;
+        }
+        .help-button {
+            position: absolute;
+            right: 0;
+            width: 30px;
+            height: 30px;
+            background-color: #4A90E2;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+            white-space: pre-line;
+        }
+        .image-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .image-frame {
+            width: 150px;
+            padding: 10px;
+            background-color: #e6f2ff;
+            border-radius: 10px;
+            text-align: center;
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+            color: #333;
+        }
+        .image-frame:hover {
+            background-color: #87CEEB;
+        }
+        .image-container {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title-container">
+            <h1>Unicorn Reflections</h1>
+            <button class="help-button" onclick="openModal()">?</button>
+        </div>
+        <div class="image-grid">
+            {% for image in images %}
+            <a href="{{ url_for('people', full_name=image.filename[:-4]) }}" class="image-frame">
+                <div class="image-container">
+                    <img src="{{ url_for('static', filename=image.filename) }}" alt="{{ image.firstname }}">
+                </div>
+                <p>{{ image.firstname|capitalize }}</p>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="helpModal" class="modal" onclick="closeModal()">
+        <div class="modal-content">
+            {{ modal_text|safe|replace("\r", "") }}
+        </div>
+    </div>
+
+    <script>
+        function openModal() {
+            document.getElementById("helpModal").style.display = "block";
+        }
+
+        function closeModal() {
+            document.getElementById("helpModal").style.display = "none";
+        }
+
+        // Close the modal if the user clicks outside of it
+        window.onclick = function(event) {
+            if (event.target == document.getElementById("helpModal")) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
