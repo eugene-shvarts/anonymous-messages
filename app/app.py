@@ -31,15 +31,15 @@ questions = []
 def set_questions():
     if len(questions) > 0:
         return questions
-    with app.app_context():
-        with connctx as conn:
-            cur = conn.cursor()
-            cur.execute('SELECT question_text, question_label FROM questions')
-            questions.extend([
-                {'text': result[0], 'label': result[1], 'placeholder': ''}
-                for result in cur.fetchall()
-                if result[1] in question_labels
-            ])
+    
+    with connctx as conn:
+        cur = conn.cursor()
+        cur.execute('SELECT question_text, question_label FROM questions')
+        questions.extend([
+            {'text': result[0], 'label': result[1], 'placeholder': ''}
+            for result in cur.fetchall()
+            if result[1] in question_labels
+        ])
     return questions
 
 modal_text = """You can provide anonymous reflections to your fellow unicorns!
@@ -60,7 +60,7 @@ def error_return(**metas):
 @app.route('/')
 def home():
     try:
-        image_files = os.listdir(os.path.join(app.root_path, 'static'))
+        image_files = os.listdir('static')
         images = [{'filename': f, 'firstname': f.split('.')[0].split('-')[0]} for f in image_files if f.endswith('.jpg')]
         return render_template('select.html', images=images, modal_text=modal_text)
     except:
@@ -95,17 +95,21 @@ def favicon():
 @app.route('/testmysql/<bar>', methods=['GET'])
 def testmysql(bar):
     try:
-        with app.app_context():
-            with connctx as conn:
-                cur = conn.cursor()
-                cur.execute(
-                    '''INSERT INTO foo (contents)
-                    VALUES (%s)''',
-                    (bar,)
-                )
-                conn.commit()
-                cur.execute('SELECT * FROM foo')
-                return jsonify(cur.fetchall())
+        app.logger.error("dumping info about mysql connection")
+        app.logger.error(f"mysql user: {mysql.connection.user}")
+        app.logger.error(f"mysql host: {mysql.connection.host}")
+        app.logger.error(f"mysql port: {mysql.connection.port}")
+        app.logger.error(f"mysql db: {mysql.connection.db}")
+        with connctx as conn:
+            cur = conn.cursor()
+            cur.execute(
+                '''INSERT INTO foo (contents)
+                VALUES (%s)''',
+                (bar,)
+            )
+            conn.commit()
+            cur.execute('SELECT * FROM foo')
+            return jsonify(cur.fetchall())
     except:
         return error_return()
 
