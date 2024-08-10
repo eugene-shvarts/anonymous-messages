@@ -59,23 +59,29 @@ def error_return(**metas):
 
 @app.route('/')
 def home():
-    image_files = os.listdir('static')
-    images = [{'filename': f, 'firstname': f.split('.')[0].split('-')[0]} for f in image_files if f.endswith('.jpg')]
-    return render_template('select.html', images=images, modal_text=modal_text)
+    try:
+        image_files = os.listdir(os.path.join(app.root_path, 'static'))
+        images = [{'filename': f, 'firstname': f.split('.')[0].split('-')[0]} for f in image_files if f.endswith('.jpg')]
+        return render_template('select.html', images=images, modal_text=modal_text)
+    except:
+        return error_return()
 
 @app.route('/people/<full_name>', methods=['GET', 'POST'])
 def people(full_name):
-    if request.method == 'POST':
-        # Process form data
-        form_data = request.form
-        response_text = f"Responses for {full_name.split('-')[0].title()}:\n\n"
-        for question in questions:
-            response_text += f"{question['text']}\n{form_data.get(question['label'], 'No response')}\n\n"
-        return response_text
-    else:
-        # Render the form page
-        set_questions()
-        return render_template('person.html', full_name=full_name, questions=questions)
+    try:
+        if request.method == 'POST':
+            # Process form data
+            form_data = request.form
+            response_text = f"Responses for {full_name.split('-')[0].title()}:\n\n"
+            for question in questions:
+                response_text += f"{question['text']}\n{form_data.get(question['label'], 'No response')}\n\n"
+            return response_text
+        else:
+            # Render the form page
+            set_questions()
+            return render_template('person.html', full_name=full_name, questions=questions)
+    except:
+        return error_return()
 
 @app.route('/favicon.ico') 
 def favicon(): 
