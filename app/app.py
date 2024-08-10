@@ -60,7 +60,7 @@ def error_return(**metas):
 @app.route('/')
 def home():
     try:
-        image_files = os.listdir('static')
+        image_files = os.listdir(os.path.join(app.root_path, 'static'))
         images = [{'filename': f, 'firstname': f.split('.')[0].split('-')[0]} for f in image_files if f.endswith('.jpg')]
         return render_template('select.html', images=images, modal_text=modal_text)
     except:
