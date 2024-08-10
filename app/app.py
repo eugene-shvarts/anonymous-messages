@@ -31,15 +31,15 @@ questions = []
 def set_questions():
     if len(questions) > 0:
         return questions
-    
-    with connctx as conn:
-        cur = conn.cursor()
-        cur.execute('SELECT question_text, question_label FROM questions')
-        questions.extend([
-            {'text': result[0], 'label': result[1], 'placeholder': ''}
-            for result in cur.fetchall()
-            if result[1] in question_labels
-        ])
+    with app.app_context():
+        with connctx as conn:
+            cur = conn.cursor()
+            cur.execute('SELECT question_text, question_label FROM questions')
+            questions.extend([
+                {'text': result[0], 'label': result[1], 'placeholder': ''}
+                for result in cur.fetchall()
+                if result[1] in question_labels
+            ])
     return questions
 
 modal_text = """You can provide anonymous reflections to your fellow unicorns!
@@ -95,16 +95,17 @@ def favicon():
 @app.route('/testmysql/<bar>', methods=['GET'])
 def testmysql(bar):
     try:
-        with connctx as conn:
-            cur = conn.cursor()
-            cur.execute(
-                '''INSERT INTO foo (contents)
-                VALUES (%s)''',
-                (bar,)
-            )
-            conn.commit()
-            cur.execute('SELECT * FROM foo')
-            return jsonify(cur.fetchall())
+        with app.app_context():
+            with connctx as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    '''INSERT INTO foo (contents)
+                    VALUES (%s)''',
+                    (bar,)
+                )
+                conn.commit()
+                cur.execute('SELECT * FROM foo')
+                return jsonify(cur.fetchall())
     except:
         return error_return()
 
