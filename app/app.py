@@ -95,6 +95,7 @@ def favicon():
 @app.route('/testmysql/<bar>', methods=['GET'])
 def testmysql(bar):
     try:
+        app.logger.error(f'config is {app.config}')
         with connctx as conn:
             cur = conn.cursor()
             cur.execute(
