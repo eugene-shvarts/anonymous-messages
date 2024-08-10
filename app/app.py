@@ -95,11 +95,6 @@ def favicon():
 @app.route('/testmysql/<bar>', methods=['GET'])
 def testmysql(bar):
     try:
-        app.logger.error("dumping info about mysql connection")
-        app.logger.error(f"mysql user: {mysql.connection.user}")
-        app.logger.error(f"mysql host: {mysql.connection.host}")
-        app.logger.error(f"mysql port: {mysql.connection.port}")
-        app.logger.error(f"mysql db: {mysql.connection.db}")
         with connctx as conn:
             cur = conn.cursor()
             cur.execute(
