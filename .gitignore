@@ -4,6 +4,8 @@ app/static/*
 app/secrets.env
 app/credentials
 
+data/
+
 __pycache__/
 .ipynb_checkpoints/
 .DS_Store

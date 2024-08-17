@@ -34,9 +34,9 @@ def set_questions():
     
     with connctx as conn:
         cur = conn.cursor()
-        cur.execute('SELECT question_text, question_label FROM questions')
+        cur.execute('SELECT question_text, question_label, id FROM questions')
         questions.extend([
-            {'text': result[0], 'label': result[1], 'placeholder': ''}
+            {'text': result[0], 'label': result[1], 'id': result[2], 'placeholder': ''}
             for result in cur.fetchall()
             if result[1] in question_labels
         ])
@@ -72,9 +72,20 @@ def people(full_name):
         if request.method == 'POST':
             # Process form data
             form_data = request.form
-            response_text = f"Responses for {full_name.split('-')[0].title()}:\n\n"
-            for question in questions:
-                response_text += f"{question['text']}\n{form_data.get(question['label'], 'No response')}\n\n"
+            response_text = f"Submitted responses for {full_name.split('-')[0].title()}!"
+            with connctx as conn:
+                cur = conn.cursor()
+                cur.execute('SELECT id FROM persons WHERE person_fullname = %s', (full_name,))
+                person_id = cur.fetchone()[0]
+                for question, response in zip(questions, form_data.values()):
+                    cur.execute(
+                        '''INSERT INTO responses (person_id, question_id, response_text)
+                        VALUES (%s, %s, %s)''',
+                        (person_id, question['id'], response)
+                    )
+                conn.commit()
+            # for question in questions:
+                # response_text += f"{question['text']}\n{form_data.get(question['label'], 'No response')}\n\n"
             return response_text
         else:
             # Render the form page
@@ -92,21 +103,21 @@ def favicon():
     )
 
 # test to validate mysql works
-@app.route('/testmysql/<bar>', methods=['GET'])
-def testmysql(bar):
-    try:
-        with connctx as conn:
-            cur = conn.cursor()
-            cur.execute(
-                '''INSERT INTO foo (contents)
-                VALUES (%s)''',
-                (bar,)
-            )
-            conn.commit()
-            cur.execute('SELECT * FROM foo')
-            return jsonify(cur.fetchall())
-    except:
-        return error_return()
+# @app.route('/testmysql/<bar>', methods=['GET'])
+# def testmysql(bar):
+#     try:
+#         with connctx as conn:
+#             cur = conn.cursor()
+#             cur.execute(
+#                 '''INSERT INTO foo (contents)
+#                 VALUES (%s)''',
+#                 (bar,)
+#             )
+#             conn.commit()
+#             cur.execute('SELECT * FROM foo')
+#             return jsonify(cur.fetchall())
+#     except:
+#         return error_return()
 
 if __name__ == '__main__':
     app.run(debug=True)
