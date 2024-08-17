@@ -4,6 +4,7 @@ from traceback import format_exc
 from flask import Flask, render_template, request, send_from_directory, jsonify
 from flask_mysqldb import MySQL
 
+from cipher import deserialize_public_key, hybrid_encrypt
 from constants import LOCAL_SSH_TUNNEL_PORT, MYSQL_PORT
 from util import ConnectionContext, ConnectionSSHContext
 
@@ -75,13 +76,13 @@ def people(full_name):
             response_text = f"Submitted responses for {full_name.split('-')[0].title()}!"
             with connctx as conn:
                 cur = conn.cursor()
-                cur.execute('SELECT id FROM persons WHERE person_fullname = %s', (full_name,))
-                person_id = cur.fetchone()[0]
+                cur.execute('SELECT id, public_key FROM persons WHERE person_fullname = %s', (full_name,))
+                person_id, pubkey = cur.fetchone()
                 for question, response in zip(questions, form_data.values()):
                     cur.execute(
                         '''INSERT INTO responses (person_id, question_id, response_text)
                         VALUES (%s, %s, %s)''',
-                        (person_id, question['id'], response)
+                        (person_id, question['id'], hybrid_encrypt(response, deserialize_public_key(pubkey)))
                     )
                 conn.commit()
             # for question in questions:
