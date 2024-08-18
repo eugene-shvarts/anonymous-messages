@@ -136,7 +136,7 @@ def hybrid_decrypt(encrypted_data: str, private_key) -> str:
 
 def user_info_from_secret(secret_key):
     keybytes = b64decode(secret_key)
-    pid = int.from_bytes(keybytes[18:])
+    pid = int.from_bytes(keybytes[18:], byteorder='big')
     pw = keybytes[:18]
     return pid, pw
 
