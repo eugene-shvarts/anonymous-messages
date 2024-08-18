@@ -16,6 +16,28 @@
             justify-content: center;
             align-items: center;
         }
+        .page-wrapper {
+            width: 100%;
+            max-width: 1000px;
+            position: relative;
+        }
+        .back-button {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background-color: #FF6B6B;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        .back-button:hover {
+            background-color: #FF8E8E;
+        }
         .container {
             background-color: rgba(255, 255, 255, 0.9);
             border-radius: 20px;
@@ -106,20 +128,23 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="title-container">
-            <h1>Unicorn Reflections</h1>
-            <button class="help-button" onclick="openModal()">?</button>
-        </div>
-        <div class="image-grid">
-            {% for image in images %}
-            <a href="{{ url_for('people', full_name=image.filename[:-4]) }}" class="image-frame">
-                <div class="image-container">
-                    <img src="{{ url_for('static', filename=image.filename) }}" alt="{{ image.firstname }}">
-                </div>
-                <p>{{ image.firstname|capitalize }}</p>
-            </a>
-            {% endfor %}
+    <div class="page-wrapper">
+        <a href="{{ url_for('me') }}" class="back-button">My reflections</a>
+        <div class="container">
+            <div class="title-container">
+                <h1>Unicorn Reflections</h1>
+                <button class="help-button" onclick="openModal()">?</button>
+            </div>
+            <div class="image-grid">
+                {% for image in images %}
+                <a href="{{ url_for('people', full_name=image.filename[:-4]) }}" class="image-frame">
+                    <div class="image-container">
+                        <img src="{{ url_for('static', filename=image.filename) }}" alt="{{ image.firstname }}">
+                    </div>
+                    <p>{{ image.firstname|capitalize }}</p>
+                </a>
+                {% endfor %}
+            </div>
         </div>
     </div>
 

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Reflections</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rowdies&family=Roboto:wght@300;400&display=swap');
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #87CEEB, #00CED1);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .page-wrapper {
+            width: 100%;
+            max-width: 800px;
+            position: relative;
+        }
+        .back-button {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background-color: #FF6B6B;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        .back-button:hover {
+            background-color: #FF8E8E;
+        }
+        .reset-button {
+            position: absolute;
+            top: -40px;
+            right: -80px;
+            background-color: #FF6B6B;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        .reset-button:hover {
+            background-color: #FF8E8E;
+        }
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-family: 'Rowdies', cursive;
+            color: #FF6B6B;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #4A90E2;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 100px;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #FF6B6B;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: #FF6B6B;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #FF8E8E;
+        }
+
+        .notification {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+        }
+
+        .notification.success {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: vertical;
+        }
+
+        form {
+            text-align: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #dddfe2;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="container">
+            <a href="{{ url_for('home') }}" class="back-button">Back to everyone</a>
+            <a href="{{ url_for('reset_secret_key') }}" class="reset-button">Regenerate secret key</a>
+
+            {% if authenticated %}
+                <h1>Hi {{ name }}!</h1>
+                <p>Welcome back</p>
+            {% else %}
+                <h1>My Reflections</h1>
+
+                <div class="form-group">
+                    {% if error %}
+                        <div class="error-message">{{ error }}</div>
+                    {% endif %}
+
+                    <form method="POST">
+                        <input name="user_secret_key" placeholder="Enter your secret key" required>
+                        <button type="submit">Submit</button>
+                    </form>
+                </div>
+
+                <div id="successNotification" class="notification success" style="display: none;">
+                    Authenticated successfully!
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // You can add any necessary JavaScript here
+    </script>
+</body>
+</html>

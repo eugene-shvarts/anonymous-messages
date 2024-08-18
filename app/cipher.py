@@ -3,7 +3,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-import base64
+from base64 import b64encode, b64decode
 import os
 
 # Use base58 for public key encoding
@@ -38,6 +38,9 @@ def deserialize_public_key(base58_string):
 
 def encrypt_private_key(private_key, password):
     """Encrypt private key with a password."""
+    if isinstance(password, str):
+        password = password.encode()
+
     salt = os.urandom(16)
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
@@ -46,7 +49,7 @@ def encrypt_private_key(private_key, password):
         iterations=100000,
         backend=default_backend()
     )
-    key = kdf.derive(password.encode())
+    key = kdf.derive(password)
     iv = os.urandom(16)
     cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
     encryptor = cipher.encryptor()
@@ -55,11 +58,14 @@ def encrypt_private_key(private_key, password):
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption()
     )) + encryptor.finalize()
-    return base64.b64encode(salt + iv + encrypted_key).decode()
+    return b64encode(salt + iv + encrypted_key).decode()
 
 def decrypt_private_key(encrypted_key, password):
     """Decrypt private key with a password."""
-    decoded = base64.b64decode(encrypted_key)
+    if isinstance(password, str):
+        password = password.encode()
+
+    decoded = b64decode(encrypted_key)
     salt, iv, encrypted_key = decoded[:16], decoded[16:32], decoded[32:]
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
@@ -68,7 +74,7 @@ def decrypt_private_key(encrypted_key, password):
         iterations=100000,
         backend=default_backend()
     )
-    key = kdf.derive(password.encode())
+    key = kdf.derive(password)
     cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
     decryptor = cipher.decryptor()
     decrypted_key = decryptor.update(encrypted_key) + decryptor.finalize()
@@ -100,11 +106,11 @@ def hybrid_encrypt(data: str, public_key) -> str:
     encrypted_data = encryptor.update(data.encode()) + encryptor.finalize()
 
     # Combine encrypted symmetric key, IV, and encrypted data
-    return base64.b64encode(encrypted_symmetric_key + iv + encrypted_data).decode()
+    return b64encode(encrypted_symmetric_key + iv + encrypted_data).decode()
 
 def hybrid_decrypt(encrypted_data: str, private_key) -> str:
     """Decrypt data using hybrid encryption (RSA + AES)."""
-    decoded = base64.b64decode(encrypted_data)
+    decoded = b64decode(encrypted_data)
     
     # Split the components
     encrypted_symmetric_key = decoded[:256]  # 2048-bit RSA key produces 256-byte ciphertext
@@ -127,6 +133,17 @@ def hybrid_decrypt(encrypted_data: str, private_key) -> str:
     decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
 
     return decrypted_data.decode()
+
+def user_info_from_secret(secret_key):
+    keybytes = b64decode(secret_key)
+    pid = int.from_bytes(keybytes[18:])
+    pw = keybytes[:18]
+    return pid, pw
+
+def secret_from_user_info(pid, pw):
+    def int_to_bytes(x):
+        return x.to_bytes((x.bit_length() + 7) // 8, byteorder='big')
+    return b64encode(pw + int_to_bytes(pid)).decode()
 
 ### Example usage
 

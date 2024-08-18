@@ -1,10 +1,12 @@
 import os
 from traceback import format_exc
 
-from flask import Flask, render_template, request, send_from_directory, jsonify
+from flask import Flask, render_template, request, send_from_directory, jsonify, session, redirect, url_for, flash
 from flask_mysqldb import MySQL
+from flask_bcrypt import Bcrypt
+from base64 import b64decode
 
-from cipher import deserialize_public_key, hybrid_encrypt
+from cipher import deserialize_public_key, hybrid_encrypt, user_info_from_secret, secret_from_user_info, decrypt_private_key, encrypt_private_key
 from constants import LOCAL_SSH_TUNNEL_PORT, MYSQL_PORT
 from util import ConnectionContext, ConnectionSSHContext
 
@@ -20,6 +22,9 @@ app.config['MYSQL_PORT'] = MYSQL_PORT if not app.debug else LOCAL_SSH_TUNNEL_POR
 
 mysql = MySQL(app)
 connctx = ConnectionSSHContext(mysql) if app.debug else ConnectionContext(mysql)
+
+#bcrypt configurations
+bcrypt = Bcrypt(app)
 
 question_labels = [
     "favorite_memory",
@@ -76,7 +81,7 @@ def people(full_name):
             response_text = f"Submitted responses for {full_name.split('-')[0].title()}!"
             with connctx as conn:
                 cur = conn.cursor()
-                cur.execute('SELECT id, public_key FROM persons WHERE person_fullname = %s', (full_name,))
+                cur.execute('SELECT id, public_key FROM persons WHERE fullname = %s', (full_name,))
                 person_id, pubkey = cur.fetchone()
                 for question, response in zip(questions, form_data.values()):
                     cur.execute(
@@ -94,6 +99,82 @@ def people(full_name):
             return render_template('person.html', full_name=full_name, questions=questions)
     except:
         return error_return()
+    
+@app.route('/me', methods=['GET', 'POST'])
+def me():
+    error = None
+    if request.method == 'POST':
+        user_secret_key = request.form.get('user_secret_key')
+        if user_secret_key:
+            # Validate the secret key
+            user_info = validate_user(user_secret_key)
+            if user_info:
+                session['user_secret_key'] = user_secret_key
+                session['user_name'] = user_info['name']
+                return redirect(url_for('me'))
+            else:
+                error = "Invalid secret key. Please try again."
+    
+    user_secret_key = session.get('user_secret_key')
+    user_name = session.get('user_name')
+    if user_secret_key and user_name:
+        return render_template('me.html', authenticated=True, name=user_name)
+    else:
+        session.pop('user_secret_key', None)
+        session.pop('user_name', None)
+        return render_template('me.html', authenticated=False, error=error)
+    
+@app.route('/reset', methods=['GET', 'POST'])
+def reset_secret_key():
+    if request.method == 'GET':
+        return render_template('reset.html')
+    elif request.method == 'POST':
+        secret_key = request.form['secret_key']
+        if validate_user(secret_key):
+            pid, pw = user_info_from_secret(secret_key)
+            new_secret = secret_from_user_info(pid, os.urandom(18))
+            new_hash = bcrypt.generate_password_hash(new_secret).decode()
+            try:
+                with connctx as conn:
+                    with conn.cursor() as cur:
+                        cur.execute('SELECT encrypted_private_key FROM persons WHERE id = %s', (pid,))
+                        old_encrypted_private_key = cur.fetchone()[0]
+                    new_encrypted_private_key = encrypt_private_key(
+                        decrypt_private_key(old_encrypted_private_key, pw),
+                        new_secret
+                    )
+
+                    with conn.cursor() as cur:
+                        cur.execute('UPDATE persons SET secret_key_hash = %s WHERE id = %s', (new_hash, pid))
+                        cur.execute('UPDATE persons SET encrypted_private_key = %s WHERE id = %s', (new_encrypted_private_key, pid))
+                        conn.commit()
+            except:
+                flash('An error occurred while resetting the secret key. Please try again.')
+                app.logger.error(format_exc())
+                return redirect(url_for('reset_secret_key'))
+            flash(f'Your new secret key is {new_secret}. It has been saved locally to your browser; make sure you copy it securely before you navigate away.')
+            return redirect(url_for('reset_secret_key'))
+        else:
+            flash('Invalid secret key. Please try again.')
+            return redirect(url_for('reset_secret_key'))
+
+def validate_user(secret_key):
+    try:
+        pid, pw = user_info_from_secret(secret_key)
+        with connctx as conn:
+            with conn.cursor() as cur:
+                cur.execute('SELECT secret_key_hash, name FROM persons WHERE id = %s', (pid,))
+                result = cur.fetchone()
+            
+            if result:
+                secret_key_hash, name = result
+                bcrypt.check_password_hash(secret_key_hash, pw)
+                return {"name": name.capitalize(), "user_id": pid}
+            else:
+                return None
+    except:
+        app.logger.error(format_exc())
+        return None
 
 @app.route('/favicon.ico') 
 def favicon(): 

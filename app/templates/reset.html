@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reset Secret Key</title>
+</head>
+<body>
+    <h1>Reset Secret Key</h1>
+    <p style="color: red;">Warning: Resetting your secret key will invalidate your old key wherever you're using it. If you're sure you want to proceed, enter your secret key here.</p>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <p style="color: black;">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <form method="POST">
+        <label for="secret_key">Secret Key:</label>
+        <input id="secret_key" name="secret_key" required>
+        <input type="submit" value="Reset Key">
+    </form>
+</body>
+</html>
