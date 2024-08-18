@@ -168,8 +168,10 @@ def validate_user(secret_key):
             
             if result:
                 secret_key_hash, name = result
-                bcrypt.check_password_hash(secret_key_hash, pw)
-                return {"name": name.capitalize(), "user_id": pid}
+                if bcrypt.check_password_hash(secret_key_hash, pw):
+                    return {"name": name.capitalize(), "user_id": pid}
+                else:
+                    return None
             else:
                 return None
     except:
