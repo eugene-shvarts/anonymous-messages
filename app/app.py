@@ -153,6 +153,7 @@ def reset_secret_key():
                 flash('An error occurred while resetting the secret key. Please try again.')
                 app.logger.error(format_exc())
                 return redirect(url_for('reset_secret_key'))
+            session['user_secret_key'] = new_secret
             flash(f'Your new secret key is {new_secret}. It has been saved locally to your browser; make sure you copy it securely before you navigate away.')
             return redirect(url_for('reset_secret_key'))
         else:
