@@ -156,7 +156,10 @@
 
             {% if authenticated %}
                 <h1>Hi {{ name }}!</h1>
-                <p>Welcome back</p>
+                {% for response in responses %}
+                <p>Question: {{ response.question }}</p>
+                <p>Response: {{ response.response }}</p>
+                {% endfor %}
             {% else %}
                 <h1>My Reflections</h1>
 

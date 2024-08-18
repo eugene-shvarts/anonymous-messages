@@ -6,7 +6,7 @@ from flask_mysqldb import MySQL
 from flask_bcrypt import Bcrypt
 from base64 import b64decode
 
-from cipher import deserialize_public_key, hybrid_encrypt, user_info_from_secret, secret_from_user_info, decrypt_private_key, encrypt_private_key
+from cipher import deserialize_public_key, hybrid_encrypt, hybrid_decrypt, user_info_from_secret, secret_from_user_info, decrypt_private_key, encrypt_private_key
 from constants import LOCAL_SSH_TUNNEL_PORT, MYSQL_PORT
 from util import ConnectionContext, ConnectionSSHContext
 
@@ -33,6 +33,7 @@ question_labels = [
 ]
 
 questions = []
+questionmap = {}
 # TODO force the questions into the specified order
 def set_questions():
     if len(questions) > 0:
@@ -46,6 +47,8 @@ def set_questions():
             for result in cur.fetchall()
             if result[1] in question_labels
         ])
+        for q in questions:
+            questionmap[int(q['id'])] = q
     return questions
 
 modal_text = """You can provide anonymous reflections to your fellow unicorns!
@@ -90,8 +93,6 @@ def people(full_name):
                         (person_id, question['id'], hybrid_encrypt(response, deserialize_public_key(pubkey)))
                     )
                 conn.commit()
-            # for question in questions:
-                # response_text += f"{question['text']}\n{form_data.get(question['label'], 'No response')}\n\n"
             return response_text
         else:
             # Render the form page
@@ -118,7 +119,21 @@ def me():
     user_secret_key = session.get('user_secret_key')
     user_name = session.get('user_name')
     if user_secret_key and user_name:
-        return render_template('me.html', authenticated=True, name=user_name)
+        with connctx as conn:
+            with conn.cursor() as cur:
+                pid, pw = user_info_from_secret(user_secret_key)
+                cur.execute('SELECT encrypted_private_key FROM persons WHERE id = %s', (pid,))
+                encrypted_private_key = cur.fetchone()[0]
+
+                cur.execute('SELECT question_id, response_text FROM responses WHERE person_id = %s', (pid,))
+                responses = reversed([
+                    {
+                        'question': questionmap[qid]['text'],
+                        'response': hybrid_decrypt(response, decrypt_private_key(encrypted_private_key, pw))
+                    }
+                    for qid, response in cur.fetchall()
+                ])
+        return render_template('me.html', authenticated=True, name=user_name, responses=responses)
     else:
         session.pop('user_secret_key', None)
         session.pop('user_name', None)
