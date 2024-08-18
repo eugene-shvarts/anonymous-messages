@@ -132,8 +132,9 @@ def reset_secret_key():
         secret_key = request.form['secret_key']
         if validate_user(secret_key):
             pid, pw = user_info_from_secret(secret_key)
-            new_secret = secret_from_user_info(pid, os.urandom(18))
-            new_hash = bcrypt.generate_password_hash(new_secret).decode()
+            new_pw = os.urandom(18)
+            new_secret = secret_from_user_info(pid, new_pw)
+            new_hash = bcrypt.generate_password_hash(new_pw).decode()
             try:
                 with connctx as conn:
                     with conn.cursor() as cur:
@@ -141,7 +142,7 @@ def reset_secret_key():
                         old_encrypted_private_key = cur.fetchone()[0]
                     new_encrypted_private_key = encrypt_private_key(
                         decrypt_private_key(old_encrypted_private_key, pw),
-                        new_secret
+                        new_pw
                     )
 
                     with conn.cursor() as cur:
