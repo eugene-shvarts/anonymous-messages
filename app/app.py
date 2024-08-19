@@ -118,21 +118,28 @@ def me():
     
     user_secret_key = session.get('user_secret_key')
     user_name = session.get('user_name')
+    # todo: try-catch each response, in case of decryption error
     if user_secret_key and user_name:
         with connctx as conn:
             with conn.cursor() as cur:
                 pid, pw = user_info_from_secret(user_secret_key)
                 cur.execute('SELECT encrypted_private_key FROM persons WHERE id = %s', (pid,))
                 encrypted_private_key = cur.fetchone()[0]
+                private_key = decrypt_private_key(encrypted_private_key, pw)
 
                 cur.execute('SELECT question_id, response_text FROM responses WHERE person_id = %s', (pid,))
-                responses = reversed([
-                    {
-                        'question': questionmap[qid]['text'],
-                        'response': hybrid_decrypt(response, decrypt_private_key(encrypted_private_key, pw))
-                    }
-                    for qid, response in cur.fetchall()
-                ])
+
+                def response_gen():
+                    for qid, response in cur.fetchall():
+                        try:
+                            yield {
+                                'question': questionmap[qid]['text'],
+                                'response': hybrid_decrypt(response, private_key)
+                            }
+                        except:
+                            continue
+
+                responses = reversed(list(response_gen()))
         return render_template('me.html', authenticated=True, name=user_name, responses=responses)
     else:
         session.pop('user_secret_key', None)
