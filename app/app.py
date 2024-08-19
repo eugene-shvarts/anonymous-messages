@@ -11,7 +11,7 @@ from util import ConnectionContext, ConnectionSSHContext
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 
-# MySQL configurations
+## Configurations
 mysql_config = {
     'user': os.environ.get('MYSQL_DB_USER'),
     'password': os.environ.get('MYSQL_DB_PASSWORD'),
@@ -20,27 +20,38 @@ mysql_config = {
     'port': MYSQL_PORT if not app.debug else LOCAL_SSH_TUNNEL_PORT
 }
 
-connctx = ConnectionSSHContext(mysql_config) if app.debug else ConnectionContext(mysql_config)
+tunnel_config = {
+    'ssh_host': os.environ.get('SSH_HOST'),
+    'ssh_username': os.environ.get('SSH_USER'),
+    'ssh_password': os.environ.get('SSH_PASSWORD'),
+    'local_bind_address': ('127.0.0.1', LOCAL_SSH_TUNNEL_PORT),
+    'remote_bind_address': (os.environ.get('MYSQL_DB_HOST'), MYSQL_PORT)
+}
+
+connctx = ConnectionSSHContext(mysql_config, tunnel_config) if app.debug else ConnectionContext(mysql_config)
+
+## Load questions from the database
+with connctx as conn:
+    conn.execute('SELECT text, label, id FROM questions')
+    question_data = conn.fetchall()
+
+all_questions = [
+    {'text': result[0], 'label': result[1], 'id': result[2], 'placeholder': ''}
+    for result in question_data
+]
 
 question_labels = [
     "favorite_memory",
     "lasting_impact",
-    "shadow_aspect"
+    "shared_activity"
 ]
 
-# TODO force the questions into the specified order
+questions = [ q for q in all_questions if q['label'] in question_labels ]
+questions.sort(key=lambda x: question_labels.index(x['label']))
 
-with connctx as conn:
-    conn.execute('SELECT question_text, question_label, id FROM questions')
-    question_data = conn.fetchall()
+questionmap = { q['id']: q for q in all_questions }
 
-questions = [
-    {'text': result[0], 'label': result[1], 'id': result[2], 'placeholder': ''}
-    for result in question_data
-    if result[1] in question_labels
-]
-questionmap = { q['id']: q for q in questions }
-
+## Auxiliaries
 modal_text = """You can provide anonymous reflections to your fellow unicorns!
 When we meet each other so deeply, and so briefly, it can be powerful, sweet, and perhaps transformational to understand how we showed up.
 
@@ -55,7 +66,7 @@ def error_return(**metas):
     app.logger.error(err_str)    
     return jsonify({"error": "An error occurred while processing your request."}), 500
 
-
+## Routes
 @app.route('/')
 def home():
     try:

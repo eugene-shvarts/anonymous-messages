@@ -25,12 +25,13 @@ class EmptyDeepRef:
     
 class ConnectionContext:
     def __init__(self, mysql_config):
-        self.mysql_config = mysql_config
+        self.mysql_opts = mysql_config
+        
         self.conn = None
         self.cursor = None
 
     def __enter__(self):
-        self.conn = MySQLdb.connect(**self.mysql_config)
+        self.conn = MySQLdb.connect(**self.mysql_opts)
         self.cursor = self.conn.cursor()
         return self.cursor
     
@@ -44,23 +45,19 @@ class ConnectionContext:
             self.conn = None
 
 class ConnectionSSHContext:
-    def __init__(self, mysql_config):
-        self.mysql_config = mysql_config
-        self.ssh_host = os.environ.get('SSH_HOST')
-        self.tunnel_config = {
-            'ssh_username': os.environ.get('SSH_USER'),
-            'ssh_password': os.environ.get('SSH_PASSWORD'),
-            'local_bind_address': ('127.0.0.1', LOCAL_SSH_TUNNEL_PORT),
-            'remote_bind_address': (os.environ.get('MYSQL_DB_HOST'), MYSQL_PORT)
-        }
+    def __init__(self, mysql_config, tunnel_config):
+        self.mysql_opts = mysql_config
+        self.ssh_host = tunnel_config['ssh_host']
+        self.tunnel_opts = { k:v for k,v in tunnel_config.items() if k != 'ssh_host' }
+
         self.tunnel = None
         self.conn = None
         self.cursor = None
 
     def __enter__(self):
-        self.tunnel = sshtunnel.open_tunnel(self.ssh_host, **self.tunnel_config)
+        self.tunnel = sshtunnel.open_tunnel(self.ssh_host, **self.tunnel_opts)
         self.tunnel.start()
-        self.conn = MySQLdb.connect(**self.mysql_config)
+        self.conn = MySQLdb.connect(**self.mysql_opts)
         self.cursor = self.conn.cursor()
         return self.cursor
     
