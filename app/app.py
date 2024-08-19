@@ -2,9 +2,7 @@ import os
 from traceback import format_exc
 
 from flask import Flask, render_template, request, send_from_directory, jsonify, session, redirect, url_for, flash
-from flask_mysqldb import MySQL
-from flask_bcrypt import Bcrypt
-from base64 import b64decode
+import bcrypt
 
 from cipher import deserialize_public_key, hybrid_encrypt, hybrid_decrypt, user_info_from_secret, secret_from_user_info, decrypt_private_key, encrypt_private_key
 from constants import LOCAL_SSH_TUNNEL_PORT, MYSQL_PORT
@@ -14,17 +12,15 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 
 # MySQL configurations
-app.config['MYSQL_USER'] = os.environ.get('MYSQL_DB_USER')
-app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQL_DB_PASSWORD')
-app.config['MYSQL_DB'] = os.environ.get('MYSQL_DB_DATABASE')
-app.config['MYSQL_HOST'] = os.environ.get('MYSQL_DB_HOST') if not app.debug else '127.0.0.1'
-app.config['MYSQL_PORT'] = MYSQL_PORT if not app.debug else LOCAL_SSH_TUNNEL_PORT
+mysql_config = {
+    'user': os.environ.get('MYSQL_DB_USER'),
+    'password': os.environ.get('MYSQL_DB_PASSWORD'),
+    'db': os.environ.get('MYSQL_DB_DATABASE'),
+    'host': os.environ.get('MYSQL_DB_HOST') if not app.debug else '127.0.0.1',
+    'port': MYSQL_PORT if not app.debug else LOCAL_SSH_TUNNEL_PORT
+}
 
-mysql = MySQL(app)
-connctx = ConnectionSSHContext(mysql) if app.debug else ConnectionContext(mysql)
-
-#bcrypt configurations
-bcrypt = Bcrypt(app)
+connctx = ConnectionSSHContext(mysql_config) if app.debug else ConnectionContext(mysql_config)
 
 question_labels = [
     "favorite_memory",
@@ -32,24 +28,18 @@ question_labels = [
     "shadow_aspect"
 ]
 
-questions = []
-questionmap = {}
 # TODO force the questions into the specified order
-def set_questions():
-    if len(questions) > 0:
-        return questions
-    
-    with connctx as conn:
-        cur = conn.cursor()
-        cur.execute('SELECT question_text, question_label, id FROM questions')
-        questions.extend([
-            {'text': result[0], 'label': result[1], 'id': result[2], 'placeholder': ''}
-            for result in cur.fetchall()
-            if result[1] in question_labels
-        ])
-        for q in questions:
-            questionmap[int(q['id'])] = q
-    return questions
+
+with connctx as conn:
+    conn.execute('SELECT question_text, question_label, id FROM questions')
+    question_data = conn.fetchall()
+
+questions = [
+    {'text': result[0], 'label': result[1], 'id': result[2], 'placeholder': ''}
+    for result in question_data
+    if result[1] in question_labels
+]
+questionmap = { q['id']: q for q in questions }
 
 modal_text = """You can provide anonymous reflections to your fellow unicorns!
 When we meet each other so deeply, and so briefly, it can be powerful, sweet, and perhaps transformational to understand how we showed up.
@@ -83,20 +73,26 @@ def people(full_name):
             form_data = request.form
             response_text = f"Submitted responses for {full_name.split('-')[0].title()}!"
             with connctx as conn:
-                cur = conn.cursor()
-                cur.execute('SELECT id, public_key FROM persons WHERE fullname = %s', (full_name,))
-                person_id, pubkey = cur.fetchone()
+                conn.execute('SELECT id, public_key FROM persons WHERE fullname = %s', (full_name,))
+                person_id, pubkey = conn.fetchone()
+
+                conn.execute('SELECT group_id from responses ORDER BY id DESC LIMIT 1')
+                group_id = conn.fetchone()
+                if group_id is None:
+                    group_id = 1
+                else:
+                    group_id = group_id[0] + 1
+
                 for question, response in zip(questions, form_data.values()):
-                    cur.execute(
-                        '''INSERT INTO responses (person_id, question_id, response_text)
-                        VALUES (%s, %s, %s)''',
-                        (person_id, question['id'], hybrid_encrypt(response, deserialize_public_key(pubkey)))
+                    encrypted_response = hybrid_encrypt(response, deserialize_public_key(pubkey))
+                    conn.execute(
+                        '''INSERT INTO responses (person_id, question_id, group_id, response_text)
+                        VALUES (%s, %s, %s, %s)''',
+                        (person_id, question['id'], group_id, encrypted_response)
                     )
-                conn.commit()
             return response_text
         else:
             # Render the form page
-            set_questions()
             return render_template('person.html', full_name=full_name, questions=questions)
     except:
         return error_return()
@@ -120,27 +116,34 @@ def me():
     user_name = session.get('user_name')
 
     if user_secret_key and user_name:
+        pid, pw = user_info_from_secret(user_secret_key)
         with connctx as conn:
-            with conn.cursor() as cur:
-                pid, pw = user_info_from_secret(user_secret_key)
-                cur.execute('SELECT encrypted_private_key FROM persons WHERE id = %s', (pid,))
-                encrypted_private_key = cur.fetchone()[0]
-                private_key = decrypt_private_key(encrypted_private_key, pw)
+            conn.execute('SELECT encrypted_private_key FROM persons WHERE id = %s', (pid,))
+            encrypted_private_key = conn.fetchone()[0]
+            private_key = decrypt_private_key(encrypted_private_key, pw)
 
-                cur.execute('SELECT question_id, response_text FROM responses WHERE person_id = %s', (pid,))
-                responses = cur.fetchall()
+            conn.execute('SELECT id, question_id, group_id, response_text FROM responses WHERE person_id = %s', (pid,))
+            responses = conn.fetchall()
 
         def response_gen():
-            for qid, response in responses:
+            errs = []
+            ids = []
+            for rid, qid, gid, response in responses:
                 try:
                     yield {
                         'question': questionmap[qid]['text'],
+                        'sort_key': (-gid, rid),
                         'response': hybrid_decrypt(response, private_key)
                     }
                 except:
-                    continue
-
-        return render_template('me.html', authenticated=True, name=user_name, responses=reversed(list(response_gen())))
+                    errs.append(format_exc())
+                    ids.append(rid)
+            if len(errs) > 0:
+                app.logger.error('\n'.join(['RESPONSE DECRYPTION ERRORS FOLLOW:'] + errs))
+                app.logger.error(f'Error responses: {ids}')
+        
+        sorted_responses = sorted(response_gen(), key=lambda x: x['sort_key'])
+        return render_template('me.html', authenticated=True, name=user_name, responses=sorted_responses)
     else:
         session.pop('user_secret_key', None)
         session.pop('user_name', None)
@@ -156,27 +159,24 @@ def reset_secret_key():
             pid, pw = user_info_from_secret(secret_key)
             new_pw = os.urandom(18)
             new_secret = secret_from_user_info(pid, new_pw)
-            new_hash = bcrypt.generate_password_hash(new_pw).decode()
+            new_hash = bcrypt.hashpw(new_pw, bcrypt.gensalt()).decode()
             try:
                 with connctx as conn:
-                    with conn.cursor() as cur:
-                        cur.execute('SELECT encrypted_private_key FROM persons WHERE id = %s', (pid,))
-                        old_encrypted_private_key = cur.fetchone()[0]
+                    conn.execute('SELECT encrypted_private_key FROM persons WHERE id = %s', (pid,))
+                    
                     new_encrypted_private_key = encrypt_private_key(
-                        decrypt_private_key(old_encrypted_private_key, pw),
+                        decrypt_private_key(conn.fetchone()[0], pw),
                         new_pw
                     )
 
-                    with conn.cursor() as cur:
-                        cur.execute('UPDATE persons SET secret_key_hash = %s WHERE id = %s', (new_hash, pid))
-                        cur.execute('UPDATE persons SET encrypted_private_key = %s WHERE id = %s', (new_encrypted_private_key, pid))
-                        conn.commit()
+                    conn.execute('UPDATE persons SET secret_key_hash = %s WHERE id = %s', (new_hash, pid))
+                    conn.execute('UPDATE persons SET encrypted_private_key = %s WHERE id = %s', (new_encrypted_private_key, pid))
             except:
                 flash('An error occurred while resetting the secret key. Please try again.')
                 app.logger.error(format_exc())
                 return redirect(url_for('reset_secret_key'))
             session['user_secret_key'] = new_secret
-            flash(f'Your new secret key is {new_secret}. It has been saved locally to your browser; make sure you copy it securely before you navigate away.')
+            flash(f'Your new secret key is {new_secret}. It has been saved only locally to your browser; make sure you copy it securely before you navigate away.')
             return redirect(url_for('reset_secret_key'))
         else:
             flash('Invalid secret key. Please try again.')
@@ -186,18 +186,17 @@ def validate_user(secret_key):
     try:
         pid, pw = user_info_from_secret(secret_key)
         with connctx as conn:
-            with conn.cursor() as cur:
-                cur.execute('SELECT secret_key_hash, name FROM persons WHERE id = %s', (pid,))
-                result = cur.fetchone()
+            conn.execute('SELECT secret_key_hash, name FROM persons WHERE id = %s', (pid,))
+            result = conn.fetchone()
             
-            if result:
-                secret_key_hash, name = result
-                if bcrypt.check_password_hash(secret_key_hash, pw):
-                    return {"name": name.capitalize(), "user_id": pid}
-                else:
-                    return None
+        if result:
+            secret_key_hash, name = result
+            if bcrypt.checkpw(pw, secret_key_hash.encode()):
+                return {"name": name.capitalize(), "user_id": pid}
             else:
                 return None
+        else:
+            return None
     except:
         app.logger.error(format_exc())
         return None
@@ -215,14 +214,12 @@ def favicon():
 # def testmysql(bar):
 #     try:
 #         with connctx as conn:
-#             cur = conn.cursor()
-#             cur.execute(
+#             conn.execute(
 #                 '''INSERT INTO foo (contents)
 #                 VALUES (%s)''',
 #                 (bar,)
 #             )
-#             conn.commit()
-#             cur.execute('SELECT * FROM foo')
+#             conn.execute('SELECT * FROM foo')
 #             return jsonify(cur.fetchall())
 #     except:
 #         return error_return()

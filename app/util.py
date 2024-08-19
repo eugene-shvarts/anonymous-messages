@@ -1,6 +1,6 @@
 import os
 
-import sshtunnel
+import MySQLdb, sshtunnel
 
 from constants import LOCAL_SSH_TUNNEL_PORT, MYSQL_PORT
 
@@ -24,29 +24,54 @@ class EmptyDeepRef:
         return self.default_value
     
 class ConnectionContext:
-    def __init__(self, mysql):
-        self.mysql = mysql
+    def __init__(self, mysql_config):
+        self.mysql_config = mysql_config
+        self.conn = None
+        self.cursor = None
 
     def __enter__(self):
-        return self.mysql.connection
+        self.conn = MySQLdb.connect(**self.mysql_config)
+        self.cursor = self.conn.cursor()
+        return self.cursor
     
     def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
+        if self.conn:
+            self.conn.commit()
+            if self.cursor:
+                self.cursor.close()
+                self.cursor = None
+            self.conn.close()
+            self.conn = None
 
 class ConnectionSSHContext:
-    def __init__(self, mysql):
-        self.mysql = mysql
+    def __init__(self, mysql_config):
+        self.mysql_config = mysql_config
+        self.ssh_host = os.environ.get('SSH_HOST')
+        self.tunnel_config = {
+            'ssh_username': os.environ.get('SSH_USER'),
+            'ssh_password': os.environ.get('SSH_PASSWORD'),
+            'local_bind_address': ('127.0.0.1', LOCAL_SSH_TUNNEL_PORT),
+            'remote_bind_address': (os.environ.get('MYSQL_DB_HOST'), MYSQL_PORT)
+        }
+        self.tunnel = None
+        self.conn = None
+        self.cursor = None
 
     def __enter__(self):
-        self.tunnel = sshtunnel.open_tunnel(
-            os.environ.get('SSH_HOST'),
-            ssh_username=os.environ.get('SSH_USER'),
-            ssh_password=os.environ.get('SSH_PASSWORD'),
-            local_bind_address=('127.0.0.1', LOCAL_SSH_TUNNEL_PORT),
-            remote_bind_address=(os.environ.get('MYSQL_DB_HOST'), MYSQL_PORT)
-        )
+        self.tunnel = sshtunnel.open_tunnel(self.ssh_host, **self.tunnel_config)
         self.tunnel.start()
-        return self.mysql.connection
+        self.conn = MySQLdb.connect(**self.mysql_config)
+        self.cursor = self.conn.cursor()
+        return self.cursor
     
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.tunnel.stop()
+        if self.conn:
+            self.conn.commit()
+            if self.cursor:
+                self.cursor.close()
+                self.cursor = None
+            self.conn.close()
+            self.conn = None
+        if self.tunnel:
+            self.tunnel.close()
+            self.tunnel = None
