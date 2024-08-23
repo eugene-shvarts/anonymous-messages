@@ -137,7 +137,6 @@ def me():
             responses = conn.fetchall()
 
         def response_gen():
-            errs = []
             ids = []
             for rid, qid, gid, response in responses:
                 try:
@@ -147,11 +146,9 @@ def me():
                         'response': hybrid_decrypt(response, private_key)
                     }
                 except:
-                    errs.append(format_exc())
                     ids.append(rid)
-            if len(errs) > 0:
-                app.logger.error('\n'.join(['RESPONSE DECRYPTION ERRORS FOLLOW:'] + errs))
-                app.logger.error(f'Error responses: {ids}')
+            if len(ids) > 0:
+                app.logger.error(f'Error decrypting {len(ids)} responses for {pid}: {ids}')
         
         sorted_responses = sorted(response_gen(), key=lambda x: x['sort_key'])
         return render_template('me.html', authenticated=True, name=user_name, responses=sorted_responses)
@@ -187,7 +184,8 @@ def reset_secret_key():
                 app.logger.error(format_exc())
                 return redirect(url_for('reset_secret_key'))
             session['user_secret_key'] = new_secret
-            flash(f'Your new secret key is {new_secret}. It has been saved only locally to your browser; make sure you copy it securely before you navigate away.')
+            flash(f'Your new secret key is {new_secret}')
+            flash('It has been saved only locally to your browser; make sure you copy it securely before you navigate away.')
             return redirect(url_for('reset_secret_key'))
         else:
             flash('Invalid secret key. Please try again.')
