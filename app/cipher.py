@@ -6,6 +6,8 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
+from constants import USER_SECRET_KEY_LENGTH
+
 def generate_key_pair():
     """Generate a new X25519 key pair."""
     private_key = X25519PrivateKey.generate()
@@ -42,7 +44,7 @@ def encrypt_private_key(private_key, password):
     bcrypt_hash = bcrypt.hashpw(password, salt)
 
     # Use the last 32 bytes of the bcrypt hash as the encryption key
-    encryption_key = bcrypt_hash[-32:]
+    encryption_key = bcrypt_hash[-32:] # note: only 31 bytes are actual entropy. bcrypt only gives 31 and change
 
     # Generate a random nonce
     nonce = os.urandom(12)  # 96 bits for GCM
@@ -85,7 +87,8 @@ def hybrid_encrypt(data: str, public_key: X25519PublicKey) -> str:
 
     # Derive a key using bcrypt
     bcrypt_salt = bcrypt.gensalt() # 29 bytes
-    derived_key = bcrypt.hashpw(shared_secret, bcrypt_salt)[-32:]
+    # note: only 31 bytes are actual entropy. bcrypt only gives 31 and change
+    derived_key = bcrypt.hashpw(shared_secret, bcrypt_salt)[-32:] 
 
     # Generate and encrypt a symmetric key
     key_nonce = os.urandom(12) # 12 bytes
@@ -132,8 +135,8 @@ def hybrid_decrypt(encrypted_data: str, private_key: X25519PrivateKey) -> str:
 
 def user_info_from_secret(secret_key):
     keybytes = b64decode(secret_key)
-    pid = int.from_bytes(keybytes[18:], byteorder='big')
-    pw = keybytes[:18]
+    pid = int.from_bytes(keybytes[USER_SECRET_KEY_LENGTH:], byteorder='big')
+    pw = keybytes[:USER_SECRET_KEY_LENGTH]
     return pid, pw
 
 def secret_from_user_info(pid, pw):

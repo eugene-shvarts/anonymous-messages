@@ -5,7 +5,8 @@ from flask import Flask, render_template, request, send_from_directory, jsonify,
 import bcrypt
 
 from cipher import deserialize_public_key, hybrid_encrypt, hybrid_decrypt, user_info_from_secret, secret_from_user_info, decrypt_private_key, encrypt_private_key
-from constants import LOCAL_SSH_TUNNEL_PORT, MYSQL_PORT
+from constants import LOCAL_SSH_TUNNEL_PORT, MYSQL_PORT, USER_SECRET_KEY_LENGTH
+from model import Person, Response, Question
 from util import ConnectionContext, ConnectionSSHContext
 
 app = Flask(__name__)
@@ -32,13 +33,7 @@ connctx = ConnectionSSHContext(mysql_config, tunnel_config) if app.debug else Co
 
 ## Load questions from the database
 with connctx as conn:
-    conn.execute('SELECT text, label, id FROM questions')
-    question_data = conn.fetchall()
-
-all_questions = [
-    {'text': result[0], 'label': result[1], 'id': result[2], 'placeholder': ''}
-    for result in question_data
-]
+    all_questions = Question.get_all(conn)
 
 question_labels = [
     "favorite_memory",
@@ -46,10 +41,10 @@ question_labels = [
     "shared_activity"
 ]
 
-questions = [ q for q in all_questions if q['label'] in question_labels ]
-questions.sort(key=lambda x: question_labels.index(x['label']))
+questions = [ q for q in all_questions if q.label in question_labels ]
+questions.sort(key=lambda x: question_labels.index(x.label))
 
-questionmap = { q['id']: q for q in all_questions }
+questionmap = { q.id: q for q in all_questions }
 
 ## Auxiliaries
 modal_text = """You can provide anonymous reflections to your fellow unicorns!
@@ -71,7 +66,14 @@ def error_return(**metas):
 def home():
     try:
         image_files = os.listdir(os.path.join(app.root_path, 'static'))
-        images = [{'filename': f, 'firstname': f.split('.')[0].split('-')[0]} for f in image_files if f.endswith('.jpg')]
+        images = sorted(
+            [
+                {'filename': f, 'firstname': f.split('.')[0].split('-')[0]}
+                for f in image_files
+                if any(f.endswith(ext) for ext in ['.jpg', '.jpeg', '.png'])
+            ],
+            key=lambda x: x['firstname']
+        )
         return render_template('select.html', images=images, modal_text=modal_text)
     except:
         return error_return()
@@ -84,23 +86,12 @@ def people(full_name):
             form_data = request.form
             response_text = f"Submitted responses for {full_name.split('-')[0].title()}!"
             with connctx as conn:
-                conn.execute('SELECT id, public_key FROM persons WHERE fullname = %s', (full_name,))
-                person_id, pubkey = conn.fetchone()
-
-                conn.execute('SELECT group_id from responses ORDER BY id DESC LIMIT 1')
-                group_id = conn.fetchone()
-                if group_id is None:
-                    group_id = 1
-                else:
-                    group_id = group_id[0] + 1
+                person = Person.get_by_fullname(conn, full_name)
+                group_id = Response.next_group_id(conn)
 
                 for question, response in zip(questions, form_data.values()):
-                    encrypted_response = hybrid_encrypt(response, deserialize_public_key(pubkey))
-                    conn.execute(
-                        '''INSERT INTO responses (person_id, question_id, group_id, response_text)
-                        VALUES (%s, %s, %s, %s)''',
-                        (person_id, question['id'], group_id, encrypted_response)
-                    )
+                    encrypted_response = hybrid_encrypt(response, deserialize_public_key(person.public_key))
+                    Response(person.id, question.id, group_id, encrypted_response).insert(conn)
             return response_text
         else:
             # Render the form page
@@ -108,54 +99,53 @@ def people(full_name):
     except:
         return error_return()
     
-@app.route('/me', methods=['GET', 'POST'])
-def me():
-    error = None
-    if request.method == 'POST':
-        user_secret_key = request.form.get('user_secret_key')
-        if user_secret_key:
-            # Validate the secret key
-            user_info = validate_user(user_secret_key)
-            if user_info:
-                session['user_secret_key'] = user_secret_key
-                session['user_name'] = user_info['name']
-                return redirect(url_for('me'))
-            else:
-                error = "Invalid secret key. Please try again."
-    
-    user_secret_key = session.get('user_secret_key')
-    user_name = session.get('user_name')
-
-    if user_secret_key and user_name:
-        pid, pw = user_info_from_secret(user_secret_key)
-        with connctx as conn:
-            conn.execute('SELECT encrypted_private_key FROM persons WHERE id = %s', (pid,))
-            encrypted_private_key = conn.fetchone()[0]
-            private_key = decrypt_private_key(encrypted_private_key, pw)
-
-            conn.execute('SELECT id, question_id, group_id, response_text FROM responses WHERE person_id = %s', (pid,))
-            responses = conn.fetchall()
-
-        def response_gen():
-            ids = []
-            for rid, qid, gid, response in responses:
-                try:
-                    yield {
-                        'question': questionmap[qid]['text'],
-                        'sort_key': (-gid, rid),
-                        'response': hybrid_decrypt(response, private_key)
-                    }
-                except:
-                    ids.append(rid)
-            if len(ids) > 0:
-                app.logger.error(f'Error decrypting {len(ids)} responses for {pid}: {ids}')
-        
-        sorted_responses = sorted(response_gen(), key=lambda x: x['sort_key'])
-        return render_template('me.html', authenticated=True, name=user_name, responses=sorted_responses)
+@app.route('/me', methods=['POST'])
+def post_me():
+    user_secret_key = request.form.get('user_secret_key')
+    if user_secret_key:
+        if validate_user(user_secret_key):
+            session['user_secret_key'] = user_secret_key
+            return redirect(url_for('get_me'))
+        else:
+            error = "Invalid secret key. Please try again."
     else:
-        session.pop('user_secret_key', None)
-        session.pop('user_name', None)
-        return render_template('me.html', authenticated=False, error=error)
+        error = "Please provide a secret key."
+
+    return render_template('me.html', authenticated=False, error=error)
+
+@app.route('/me', methods=['GET'])
+def get_me():
+    user_secret_key = session.get('user_secret_key')
+    if user_secret_key:
+        person = validate_user(user_secret_key)
+        if not person:
+            return render_template('me.html', authenticated=False, error="Secret key is invalid.")
+    else:
+        return render_template('me.html', authenticated=False)
+
+    pid, pw = user_info_from_secret(user_secret_key)
+    private_key = decrypt_private_key(person.encrypted_private_key, pw)
+
+    with connctx as conn:
+        responses = Response.get_by_person(conn, pid)
+
+    def response_gen():
+        ids = []
+        for response in responses:
+            try:
+                yield {
+                    'question': questionmap[response.question_id].text,
+                    'sort_key': (-response.group_id, response.id),
+                    'response': hybrid_decrypt(response.encrypted_text, private_key)
+                }
+            except:
+                ids.append(response.id)
+                # app.logger.error(format_exc())
+        if len(ids) > 0:
+            app.logger.error(f'Error decrypting {len(ids)} responses for {pid}: {ids}')
+    
+    sorted_responses = sorted(response_gen(), key=lambda x: x['sort_key'])
+    return render_template('me.html', authenticated=True, name=person.name, responses=sorted_responses)
     
 @app.route('/reset', methods=['GET', 'POST'])
 def reset_secret_key():
@@ -165,7 +155,7 @@ def reset_secret_key():
         secret_key = request.form['secret_key']
         if validate_user(secret_key):
             pid, pw = user_info_from_secret(secret_key)
-            new_pw = os.urandom(18)
+            new_pw = os.urandom(USER_SECRET_KEY_LENGTH)
             new_secret = secret_from_user_info(pid, new_pw)
             new_hash = bcrypt.hashpw(new_pw, bcrypt.gensalt()).decode()
             try:
@@ -195,15 +185,10 @@ def validate_user(secret_key):
     try:
         pid, pw = user_info_from_secret(secret_key)
         with connctx as conn:
-            conn.execute('SELECT secret_key_hash, name FROM persons WHERE id = %s', (pid,))
-            result = conn.fetchone()
+            person = Person.get(conn, pid)
             
-        if result:
-            secret_key_hash, name = result
-            if bcrypt.checkpw(pw, secret_key_hash.encode()):
-                return {"name": name.capitalize(), "user_id": pid}
-            else:
-                return None
+        if person and bcrypt.checkpw(pw, person.secret_key_hash.encode()):
+            return person
         else:
             return None
     except:
