@@ -154,16 +154,15 @@ def reset_secret_key():
     elif request.method == 'POST':
         secret_key = request.form['secret_key']
         if validate_user(secret_key):
-            pid, pw = user_info_from_secret(secret_key)
+            pid, old_pw = user_info_from_secret(secret_key)
             new_pw = os.urandom(USER_SECRET_KEY_LENGTH)
             new_secret = secret_from_user_info(pid, new_pw)
             new_hash = bcrypt.hashpw(new_pw, bcrypt.gensalt()).decode()
             try:
                 with connctx as conn:
-                    conn.execute('SELECT encrypted_private_key FROM persons WHERE id = %s', (pid,))
-                    
+                    old_encrypted_private_key = Person.get(conn, pid).encrypted_private_key
                     new_encrypted_private_key = encrypt_private_key(
-                        decrypt_private_key(conn.fetchone()[0], pw),
+                        decrypt_private_key(old_encrypted_private_key, old_pw),
                         new_pw
                     )
 
