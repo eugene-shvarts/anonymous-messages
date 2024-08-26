@@ -3,181 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unicorn Reflections</title>
+    <title>Leave a Reflection</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter@1&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Rowdies&family=Roboto:wght@300;400&display=swap');
+        :root {
+            --text-color: #7490FF;
+            --primary-bg: #F9F4F0;
+            --outer-bg: #E4EAFF;
+            --accent-1: #FF836D;
+            --accent-2: #FFE0FF;
+            --accent-3: #FF7DFF;
+            --accent-4: #FF380B;
+            --link: #7490FF;
+            --link-hover: #4167FF;
+        }
 
-        body {
-            font-family: 'Roboto', sans-serif;
+        body, html {
             margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #87CEEB, #00CED1);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .page-wrapper {
-            width: 100%;
-            max-width: 800px;
-            position: relative;
-        }
-        .back-button {
-            position: absolute;
-            top: -40px;
-            left: 0;
-            background-color: #FF6B6B;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            text-decoration: none;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-        }
-        .back-button:hover {
-            background-color: #FF8E8E;
-        }
-
-        .container {
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 20px;
-            padding: 40px;
-            width: 100%;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2), var(--accent-3));
+            color: var(--text-color);
             display: flex;
             flex-direction: column;
             align-items: center;
+            height:100%;
+            width: 100%;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: flex-start;
+            padding: 2rem;
+        }
+
+        .nav-button {
+            background-color: var(--link);
+            color: var(--primary-bg);
+            border: none;
+            padding: 0.5rem 1rem;
+            margin-right: 1rem;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .nav-button:hover {
+            background-color: var(--link-hover);
+        }
+
+        .app-frame {
+            background-color: var(--primary-bg);
+            border-radius: 10px;
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 800px;
+            max-height: 1600px;
+            width: 90%;
+            height: auto;
+            overflow-y: auto;
+            box-sizing: border-box;
         }
 
         h1 {
-            font-family: 'Rowdies', cursive;
-            color: #FF6B6B;
+            font-family: 'Georgia', serif;
+            font-style: italic;
+            font-size: 2.5em;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
-        .form-group {
-            margin-bottom: 20px;
+        .question-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .question {
+            background-color: var(--outer-bg);
+            padding: 1rem;
+            border-radius: 5px;
         }
 
         label {
             display: block;
-            margin-bottom: 10px;
-            color: #4A90E2;
+            margin-bottom: 0.5rem;
             font-weight: bold;
+            color: var(--text-color);
         }
 
         textarea {
             width: 100%;
-            padding: 15px;
-            border: 2px solid #4A90E2;
-            border-radius: 10px;
-            font-size: 16px;
+            padding: 0.5rem;
+            border: 1px solid var(--text-color);
+            border-radius: 3px;
             resize: vertical;
-            min-height: 100px;
-            transition: border-color 0.3s ease;
+            font-family: inherit;
+            box-sizing: border-box;
         }
 
-        textarea:focus {
-            outline: none;
-            border-color: #FF6B6B;
-        }
-
-        button {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            background-color: #FF6B6B;
-            color: white;
+        #submit-btn {
+            background-color: var(--link);
+            color: var(--primary-bg);
             border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #FF8E8E;
-        }
-
-        .notification {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            display: none;
-        }
-
-        .notification.success {
-            background-color: #4CAF50;
-            color: white;
-        }
-
-        #submittedData {
-            margin-top: 30px;
-            padding: 20px;
-            background-color: rgba(255, 255, 255, 0.7);
-            border-radius: 10px;
-            white-space: pre-wrap;
-        }
-
-        form, .notification, #submittedData {
-            width: 100%;
-            max-width: 600px;
-        }
-
-        .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
+            padding: 0.75rem 1.5rem;
             border-radius: 5px;
-            resize: vertical;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            align-self: flex-start;
+            font-size: 1rem;
         }
 
-        form {
-            text-align: center;
+        #submit-btn:hover {
+            background-color: var(--link-hover);
+        }
+
+        #submit-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #error-message {
+            color: var(--accent-4);
+            margin-top: 1rem;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <div class="page-wrapper">
-        <a href="{{ url_for('home') }}" class="back-button">Back to everyone</a>
-        <div class="container">
-            <h1>Unicorn Reflections</h1>
-            <form id="vacationForm">
-                {% for question in questions %}
-                <div class="form-group">
-                    <label for="{{ question.label }}">{{ question.text }}</label>
-                    <textarea id="{{ question.label }}" name="{{ question.label }}" placeholder="{{ question.placeholder }}"></textarea>
-                </div>
-                {% endfor %}
-                <button type="submit">Submit</button>
-            </form>
-            <div class="notification success" id="successNotification">Submitted, thanks!</div>
-            <div id="submittedData"></div>
-        </div>
+    <div class="nav-buttons">
+        <a href="{{ url_for('home') }}" class="nav-button">Back to everyone</a>
+        <a href="{{ url_for('get_me') }}" class="nav-button">My reflections</a>
+    </div>
+
+    <div class="app-frame">
+        <h1>Reflections for {{ full_name.split('-')[0].capitalize() }}</h1>
+
+        <form id="reflection-form" class="question-form">
+            {% for question in questions %}
+            <div class="question">
+                <label for="question-{{ question.id }}">{{ question.text }}</label>
+                <textarea id="question-{{ question.id }}" name="question-{{ question.id }}" rows="4" placeholder="{{ question.placeholder }}"></textarea>
+            </div>
+            {% endfor %}
+
+            <button id="submit-btn" type="submit">Submit</button>
+        </form>
+
+        <div id="error-message"></div>
     </div>
 
     <script>
-        document.getElementById('vacationForm').addEventListener('submit', function(e) {
+        const form = document.getElementById('reflection-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const errorMessage = document.getElementById('error-message');
+
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const formData = new FormData(this);
-            fetch('/people/{{ full_name }}', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('successNotification').style.display = 'block';
-                document.getElementById('submittedData').textContent = data;
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
+            submitBtn.textContent = 'Submitting...';
+            submitBtn.disabled = true;
+            errorMessage.textContent = '';
+
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('{{ url_for("people", full_name=full_name) }}', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.text();
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submitted, thanks!';
+                } else {
+                    throw new Error('Submission failed');
+                }
+            } catch (error) {
+                submitBtn.textContent = 'Submit';
+                submitBtn.disabled = false;
+                errorMessage.textContent = 'Sorry, the submission failed; try again?';
+            }
         });
     </script>
 </body>

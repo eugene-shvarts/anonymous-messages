@@ -4,76 +4,125 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unicorn Reflections</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter@1&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Rowdies&family=Roboto:wght@300;400&display=swap');
-        body {
-            font-family: 'Roboto', sans-serif;
+        :root {
+            --text-color: #7490FF;
+            --primary-bg: #F9F4F0;
+            --outer-bg: #E4EAFF;
+            --accent-1: #FF836D;
+            --accent-2: #FFE0FF;
+            --accent-3: #FF7DFF;
+            --accent-4: #FF380B;
+            --link: #7490FF;
+            --link-hover: #4167FF;
+        }
+
+        body, html {
             margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2), var(--accent-3));
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height:100%;
+            width: 100%;
+        }
+
+        .app-frame {
+            background-color: var(--primary-bg);
+            border-radius: 20px;
             padding: 20px;
-            background: linear-gradient(135deg, #87CEEB, #00CED1);
-            min-height: 100vh;
+            width: 90%;
+            max-width: 1000px;
+            height: 80vh;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-buttons {
             display: flex;
             justify-content: center;
-            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 2rem;
         }
-        .page-wrapper {
-            width: 100%;
-            max-width: 1000px;
-            position: relative;
-        }
-        .back-button {
-            position: absolute;
-            top: -40px;
-            left: 0;
-            background-color: #FF6B6B;
-            color: white;
+
+        .nav-button {
+            background-color: var(--link);
+            color: var(--primary-bg);
             border: none;
-            padding: 10px 15px;
+            padding: 0.5rem 1rem;
+            margin-right: 1rem;
             border-radius: 5px;
-            cursor: pointer;
             text-decoration: none;
             font-weight: bold;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s;
         }
-        .back-button:hover {
-            background-color: #FF8E8E;
+
+        .nav-button:hover {
+            background-color: var(--link-hover);
         }
-        .container {
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 20px;
-            padding: 40px;
-            width: 80%;
-            max-width: 800px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-        .title-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            margin-bottom: 30px;
-        }
+
         h1 {
-            font-family: 'Rowdies', cursive;
+            font-family: 'Georgia', serif;
+            font-style: italic;
+            font-size: 2.5em;
             text-align: center;
-            color: #FF6B6B;
-            margin: 0;
+            margin-bottom: 20px;
         }
-        .help-button {
-            position: absolute;
-            right: 0;
-            width: 30px;
-            height: 30px;
-            background-color: #4A90E2;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            font-size: 20px;
-            cursor: pointer;
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .image-frame {
+            text-decoration: none;
+            color: var(--text-color);
+            text-align: center;
+            transition: transform 0.3s;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            background-color: var(--outer-bg);
+            border-radius: 20px;
         }
+
+        .image-frame:hover {
+            transform: scale(1.05);
+        }
+
+        .image-container {
+            width: 80%;
+            padding-bottom: 80%; /* This creates a 1:1 aspect ratio */
+            position: relative;
+            overflow: hidden;
+            border-radius: 50%;
+            margin: 10% auto;
+        }
+
+        .image-container img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-frame p {
+            margin-top: 10px;
+            font-size: 1.2em;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -84,91 +133,101 @@
             height: 100%;
             background-color: rgba(0,0,0,0.4);
         }
+
         .modal-content {
-            background-color: #fefefe;
+            background-color: var(--primary-bg);
             margin: 15% auto;
             padding: 20px;
-            border: 1px solid #888;
+            border-radius: 10px;
             width: 80%;
-            max-width: 600px;
-            border-radius: 10px;
-            white-space: pre-line;
+            max-width: 2000px;
         }
-        .image-grid {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
+
+        .modal-content p {
+            font-size: 18px;
+            line-height: 1.6;
         }
-        .image-frame {
-            width: 150px;
-            padding: 10px;
-            background-color: #e6f2ff;
-            border-radius: 10px;
-            text-align: center;
-            transition: background-color 0.3s ease;
-            text-decoration: none;
-            color: #333;
+
+        .close {
+            color: var(--text-color);
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
         }
-        .image-frame:hover {
-            background-color: #87CEEB;
-        }
-        .image-container {
-            width: 130px;
-            height: 130px;
+
+        .info-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: var(--text-color);
+            color: white;
+            border: none;
             border-radius: 50%;
-            overflow: hidden;
-            margin: 0 auto;
+            width: 30px;
+            height: 30px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .image-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+
+        @media (min-width: 600px) {
+            .image-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (min-width: 900px) {
+            .image-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
         }
     </style>
 </head>
 <body>
-    <div class="page-wrapper">
-        <a href="{{ url_for('get_me') }}" class="back-button">My reflections</a>
-        <div class="container">
-            <div class="title-container">
-                <h1>Unicorn Reflections</h1>
-                <button class="help-button" onclick="openModal()">?</button>
-            </div>
-            <div class="image-grid">
-                {% for image in images %}
-                <a href="{{ url_for('people', full_name=image.filename[:-4]) }}" class="image-frame">
-                    <div class="image-container">
-                        <img src="{{ url_for('static', filename=image.filename) }}" alt="{{ image.firstname }}">
-                    </div>
-                    <p>{{ image.firstname|capitalize }}</p>
-                </a>
-                {% endfor %}
-            </div>
+    <div class="nav-buttons">
+        <a href="{{ url_for('get_me') }}" class="nav-button">My reflections</a>
+    </div>
+
+    <div class="app-frame">
+        <h1>Unicorn Reflections</h1>
+        <button class="info-button" onclick="openModal()">?</button>
+        <div class="image-grid">
+            {% for image in images %}
+            <a href="{{ url_for('people', full_name=image.filename[:-4]) }}" class="image-frame">
+                <div class="image-container">
+                    <img src="{{ url_for('static', filename=image.filename) }}" alt="{{ image.firstname }}">
+                </div>
+                <p>{{ image.firstname|capitalize }}</p>
+            </a>
+            {% endfor %}
         </div>
     </div>
 
-    <div id="helpModal" class="modal" onclick="closeModal()">
+    <div id="infoModal" class="modal">
         <div class="modal-content">
-            {{ modal_text|safe|replace("\r", "") }}
+            <span class="close" onclick="closeModal()">&times;</span>
+            <p>{{ modal_text|safe|replace("\r", "") }}</p>
         </div>
     </div>
 
     <script>
         function openModal() {
-            document.getElementById("helpModal").style.display = "block";
+            document.getElementById('infoModal').style.display = 'block';
         }
 
         function closeModal() {
-            document.getElementById("helpModal").style.display = "none";
+            document.getElementById('infoModal').style.display = 'none';
         }
 
-        // Close the modal if the user clicks outside of it
         window.onclick = function(event) {
-            if (event.target == document.getElementById("helpModal")) {
+            if (event.target == document.getElementById('infoModal')) {
                 closeModal();
             }
         }
     </script>
 </body>
 </html>
+

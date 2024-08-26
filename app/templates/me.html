@@ -4,185 +4,181 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Reflections</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter@1&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Rowdies&family=Roboto:wght@300;400&display=swap');
+        :root {
+            --text-color: #7490FF;
+            --primary-bg: #F9F4F0;
+            --outer-bg: #E4EAFF;
+            --accent-1: #FF836D;
+            --accent-2: #FFE0FF;
+            --accent-3: #FF7DFF;
+            --accent-4: #FF380B;
+            --link: #7490FF;
+            --link-hover: #4167FF;
+        }
 
-        body {
-            font-family: 'Roboto', sans-serif;
+        body, html {
             margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #87CEEB, #00CED1);
-            min-height: 100vh;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2), var(--accent-3));
+            color: var(--text-color);
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-        }
-
-        .page-wrapper {
+            height:100%;
             width: 100%;
-            max-width: 800px;
-            position: relative;
-        }
-        .back-button {
-            position: absolute;
-            top: -40px;
-            left: 0;
-            background-color: #FF6B6B;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            text-decoration: none;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-        }
-        .back-button:hover {
-            background-color: #FF8E8E;
-        }
-        .reset-button {
-            position: absolute;
-            top: -40px;
-            right: -80px;
-            background-color: #FF6B6B;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            text-decoration: none;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-        }
-        .reset-button:hover {
-            background-color: #FF8E8E;
         }
         .container {
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 20px;
-            padding: 40px;
+            max-width: 800px;
             width: 100%;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 2rem;
+        }
+
+        .nav-button {
+            background-color: var(--link);
+            color: var(--primary-bg);
+            border: none;
+            padding: 0.5rem 1rem;
+            margin-right: 1rem;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .nav-button:hover {
+            background-color: var(--link-hover);
+        }
+        .app-frame {
+            background-color: var(--primary-bg);
+            border-radius: 20px;
+            padding: 20px;
+            width: 90%;
+            max-width: 1000px;
+            max-height: 1600px;
+            height: auto;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        h1 {
+            font-family: 'Georgia', serif;
+            font-style: italic;
+            font-size: 2.5em;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-family: 'Zapfino', cursive;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+        .lock-container {
             display: flex;
             flex-direction: column;
             align-items: center;
+            margin-top: 50px;
         }
-
-        h1 {
-            font-family: 'Rowdies', cursive;
-            color: #FF6B6B;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .form-group {
+        .lock-icon {
+            font-size: 48px;
             margin-bottom: 20px;
         }
-
-        textarea {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #4A90E2;
-            border-radius: 10px;
-            font-size: 16px;
-            resize: vertical;
-            min-height: 100px;
-            transition: border-color 0.3s ease;
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
         }
-
-        textarea:focus {
-            outline: none;
-            border-color: #FF6B6B;
-        }
-
-        button {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            background-color: #FF6B6B;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #FF8E8E;
-        }
-
-        .notification {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            display: none;
-        }
-
-        .notification.success {
-            background-color: #4CAF50;
-            color: white;
-        }
-
-        .form-group textarea {
-            width: 100%;
+        input[type="text"] {
+            flex-grow: 1;
             padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            resize: vertical;
-        }
-
-        form {
-            text-align: center;
-        }
-
-        input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid #dddfe2;
-            border-radius: 6px;
+            border: 1px solid #7490FF;
+            border-radius: 5px 0 0 5px;
             font-size: 16px;
+        }
+        .submit-button {
+            background-color: var(--link);
+            color: var(--primary-bg);
+            border: none;
+            padding: 0.5rem 1rem;
+            margin-right: 1rem;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            font-size: 16px;
+        }
+        .submit-button:hover {
+            background-color: var(--link-hover);
+        }
+        .error-message {
+            color: var(--accent-4);
+            margin-top: 10px;
+        }
+        .reflection-group {
+            background-color: var(--outer-bg);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .reflection-question {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .reflection-response {
+            margin-bottom: 20px;
+        }
+        .no-resposes {
+            text-align: center;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="page-wrapper">
-        <div class="container">
-            <a href="{{ url_for('home') }}" class="back-button">Back to everyone</a>
-            <a href="{{ url_for('reset_secret_key') }}" class="reset-button">Regenerate secret key</a>
-
+    <div class="container">
+        <div class="nav-buttons">
+            <a href="{{ url_for('home') }}" class="nav-button">Back to everyone</a>
+            <a href="{{ url_for('reset_secret_key') }}" class="nav-button">Reset secret key</a>
+        </div>
+        <div class="app-frame">
+            <h1>My Reflections</h1>
             {% if authenticated %}
-                <h1>Hi {{ name }}!</h1>
-                {% for response in responses %}
-                <p>Question: {{ response.question }}</p>
-                <p>Response: {{ response.response }}</p>
-                {% endfor %}
+                <h2>Dear {{ name }},</h2>
+                {% if responses %}
+                    {% for group in responses %}
+                        <div class="reflection-group">
+                        {% for response in group %}
+                            <div class="reflection-question">{{ response['question'] }}</div>
+                            <div class="reflection-response">{{ response['response']|safe|replace("\r", "") }}</div>
+                        {% endfor %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-resposes">(No reflections here yet)</div>
+                {% endif %}
             {% else %}
-                <h1>My Reflections</h1>
-
-                <div class="form-group">
+                <div class="lock-container">
+                    <div class="lock-icon">🔒</div>
+                    <form action="{{ url_for('post_me') }}" method="post">
+                        <div class="input-group">
+                            <input type="text" name="user_secret_key" placeholder="Enter your secret key" required>
+                            <button type="submit" class="submit-button">Submit</button>
+                        </div>
+                    </form>
                     {% if error %}
                         <div class="error-message">{{ error }}</div>
                     {% endif %}
-
-                    <form method="POST">
-                        <input name="user_secret_key" placeholder="Enter your secret key" required>
-                        <button type="submit">Submit</button>
-                    </form>
-                </div>
-
-                <div id="successNotification" class="notification success" style="display: none;">
-                    Authenticated successfully!
                 </div>
             {% endif %}
         </div>
     </div>
-
-    <script>
-        // You can add any necessary JavaScript here
-    </script>
 </body>
 </html>

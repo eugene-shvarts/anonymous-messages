@@ -1,3 +1,4 @@
+from itertools import groupby
 import os
 from traceback import format_exc
 
@@ -5,9 +6,9 @@ from flask import Flask, render_template, request, send_from_directory, jsonify,
 import bcrypt
 
 from cipher import deserialize_public_key, hybrid_encrypt, hybrid_decrypt, user_info_from_secret, secret_from_user_info, decrypt_private_key, encrypt_private_key
-from constants import LOCAL_SSH_TUNNEL_PORT, MYSQL_PORT, USER_SECRET_KEY_LENGTH
+from constants import MYSQL_PORT, USER_SECRET_KEY_LENGTH
 from model import Person, Response, Question
-from util import ConnectionContext, ConnectionSSHContext
+from util import ConnectionContext
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
@@ -17,19 +18,11 @@ mysql_config = {
     'user': os.environ.get('MYSQL_DB_USER'),
     'password': os.environ.get('MYSQL_DB_PASSWORD'),
     'db': os.environ.get('MYSQL_DB_DATABASE'),
-    'host': os.environ.get('MYSQL_DB_HOST') if not app.debug else '127.0.0.1',
-    'port': MYSQL_PORT if not app.debug else LOCAL_SSH_TUNNEL_PORT
+    'host': os.environ.get('MYSQL_DB_HOST'),
+    'port': MYSQL_PORT
 }
 
-tunnel_config = {
-    'ssh_host': os.environ.get('SSH_HOST'),
-    'ssh_username': os.environ.get('SSH_USER'),
-    'ssh_password': os.environ.get('SSH_PASSWORD'),
-    'local_bind_address': ('127.0.0.1', LOCAL_SSH_TUNNEL_PORT),
-    'remote_bind_address': (os.environ.get('MYSQL_DB_HOST'), MYSQL_PORT)
-}
-
-connctx = ConnectionSSHContext(mysql_config, tunnel_config) if app.debug else ConnectionContext(mysql_config)
+connctx = ConnectionContext(mysql_config)
 
 ## Load questions from the database
 with connctx as conn:
@@ -52,7 +45,7 @@ When we meet each other so deeply, and so briefly, it can be powerful, sweet, an
 
 Click through anyone's photo to leave reflections for them, and answer whichever questions you want to.
 
-To view reflections left for you, go to unicornparade.xyz/me"""
+To view reflections left for you, click "My reflections", or go to unicornparade.xyz/me"""
 
 def error_return(**metas):
     err_str = format_exc()
@@ -74,7 +67,7 @@ def home():
             ],
             key=lambda x: x['firstname']
         )
-        return render_template('select.html', images=images, modal_text=modal_text)
+        return render_template('select.html', images=images, modal_text=modal_text.replace('\n', '<br>'))
     except:
         return error_return()
 
@@ -103,11 +96,12 @@ def people(full_name):
 def post_me():
     user_secret_key = request.form.get('user_secret_key')
     if user_secret_key:
-        if validate_user(user_secret_key):
+        person, validation_error = validate_user(user_secret_key)
+        if person:
             session['user_secret_key'] = user_secret_key
             return redirect(url_for('get_me'))
         else:
-            error = "Invalid secret key. Please try again."
+            error = validation_error
     else:
         error = "Please provide a secret key."
 
@@ -115,37 +109,42 @@ def post_me():
 
 @app.route('/me', methods=['GET'])
 def get_me():
-    user_secret_key = session.get('user_secret_key')
-    if user_secret_key:
-        person = validate_user(user_secret_key)
-        if not person:
-            return render_template('me.html', authenticated=False, error="Secret key is invalid.")
-    else:
-        return render_template('me.html', authenticated=False)
+    try:
+        user_secret_key = session.get('user_secret_key')
+        if user_secret_key:
+            person, validation_error = validate_user(user_secret_key)
+            if not person:
+                return render_template('me.html', authenticated=False, error=validation_error)
+        else:
+            return render_template('me.html', authenticated=False)
 
-    pid, pw = user_info_from_secret(user_secret_key)
-    private_key = decrypt_private_key(person.encrypted_private_key, pw)
+        pid, pw = user_info_from_secret(user_secret_key)
+        private_key = decrypt_private_key(person.encrypted_private_key, pw)
 
-    with connctx as conn:
-        responses = Response.get_by_person(conn, pid)
+        with connctx as conn:
+            responses = Response.get_by_person(conn, pid)
 
-    def response_gen():
-        ids = []
-        for response in responses:
-            try:
-                yield {
-                    'question': questionmap[response.question_id].text,
-                    'sort_key': (-response.group_id, response.id),
-                    'response': hybrid_decrypt(response.encrypted_text, private_key)
-                }
-            except:
-                ids.append(response.id)
-                # app.logger.error(format_exc())
-        if len(ids) > 0:
-            app.logger.error(f'Error decrypting {len(ids)} responses for {pid}: {ids}')
+        def response_gen():
+            ids = []
+            for response in responses:
+                try:
+                    yield {
+                        'question': questionmap[response.question_id].text,
+                        'sort_key': (-response.group_id, response.id),
+                        'response': hybrid_decrypt(response.encrypted_text, private_key).replace('\n', '<br>')
+                    }
+                except:
+                    ids.append(response.id)
+                    # app.logger.error(format_exc())
+            if len(ids) > 0:
+                app.logger.error(f'Error decrypting {len(ids)} responses for {pid}: {ids}')
+        
+        sorted_responses = sorted(response_gen(), key=lambda x: x['sort_key'])
+        grouped_responses = [list(g) for _, g in groupby(sorted_responses, key=lambda x: x['sort_key'][0])]
+        return render_template('me.html', authenticated=True, name=person.name.capitalize(), responses=grouped_responses)
+    except:
+        return render_template('me.html', authenticated=False, error="An error occurred while loading responses, try refreshing?")
     
-    sorted_responses = sorted(response_gen(), key=lambda x: x['sort_key'])
-    return render_template('me.html', authenticated=True, name=person.name.capitalize(), responses=sorted_responses)
     
 @app.route('/reset', methods=['GET', 'POST'])
 def reset_secret_key():
@@ -153,7 +152,8 @@ def reset_secret_key():
         return render_template('reset.html')
     elif request.method == 'POST':
         secret_key = request.form['secret_key']
-        if validate_user(secret_key):
+        person, validation_error = validate_user(secret_key)
+        if person:
             pid, old_pw = user_info_from_secret(secret_key)
             new_pw = os.urandom(USER_SECRET_KEY_LENGTH)
             new_secret = secret_from_user_info(pid, new_pw)
@@ -173,11 +173,12 @@ def reset_secret_key():
                 app.logger.error(format_exc())
                 return redirect(url_for('reset_secret_key'))
             session['user_secret_key'] = new_secret
-            flash(f'Your new secret key is {new_secret}')
+            flash('Your new secret key is')
+            flash(new_secret, 'secret')
             flash('It has been saved only locally to your browser; make sure you copy it securely before you navigate away.')
             return redirect(url_for('reset_secret_key'))
         else:
-            flash('Invalid secret key. Please try again.')
+            flash(f'{validation_error} Please try again.')
             return redirect(url_for('reset_secret_key'))
 
 def validate_user(secret_key):
@@ -187,12 +188,12 @@ def validate_user(secret_key):
             person = Person.get(conn, pid)
             
         if person and bcrypt.checkpw(pw, person.secret_key_hash.encode()):
-            return person
+            return person, None
         else:
-            return None
+            return None, "Invalid secret key."
     except:
         app.logger.error(format_exc())
-        return None
+        return None, "An error occurred while validating; try refreshing?"
 
 @app.route('/favicon.ico') 
 def favicon(): 

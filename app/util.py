@@ -1,11 +1,4 @@
-import os
-
-import MySQLdb, sshtunnel
-
-from constants import LOCAL_SSH_TUNNEL_PORT, MYSQL_PORT
-
-sshtunnel.SSH_TIMEOUT = 5.0
-sshtunnel.TUNNEL_TIMEOUT = 5.0
+import MySQLdb
 
 class EmptyDeepRef:
     def __init__(self, default_value="N/A"):
@@ -43,32 +36,3 @@ class ConnectionContext:
                 self.cursor = None
             self.conn.close()
             self.conn = None
-
-class ConnectionSSHContext:
-    def __init__(self, mysql_config, tunnel_config):
-        self.mysql_opts = mysql_config
-        self.ssh_host = tunnel_config['ssh_host']
-        self.tunnel_opts = { k:v for k,v in tunnel_config.items() if k != 'ssh_host' }
-
-        self.tunnel = None
-        self.conn = None
-        self.cursor = None
-
-    def __enter__(self):
-        self.tunnel = sshtunnel.open_tunnel(self.ssh_host, **self.tunnel_opts)
-        self.tunnel.start()
-        self.conn = MySQLdb.connect(**self.mysql_opts)
-        self.cursor = self.conn.cursor()
-        return self.cursor
-    
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.conn:
-            self.conn.commit()
-            if self.cursor:
-                self.cursor.close()
-                self.cursor = None
-            self.conn.close()
-            self.conn = None
-        if self.tunnel:
-            self.tunnel.close()
-            self.tunnel = None
