@@ -31,7 +31,8 @@ with connctx as conn:
 question_labels = [
     "favorite_memory",
     "lasting_impact",
-    "shared_activity"
+    "shared_activity",
+    "anything_else"
 ]
 
 questions = [ q for q in all_questions if q.label in question_labels ]
