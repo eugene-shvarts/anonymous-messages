@@ -145,7 +145,7 @@ def get_me():
             app.logger.error(f'Error decrypting {len(ids)} responses for {pid}: {ids}')
     
     sorted_responses = sorted(response_gen(), key=lambda x: x['sort_key'])
-    return render_template('me.html', authenticated=True, name=person.name, responses=sorted_responses)
+    return render_template('me.html', authenticated=True, name=person.name.capitalize(), responses=sorted_responses)
     
 @app.route('/reset', methods=['GET', 'POST'])
 def reset_secret_key():
