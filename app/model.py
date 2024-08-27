@@ -1,4 +1,10 @@
+import os
+
+import bcrypt
+
 from dataclasses import dataclass, fields
+from cipher import generate_key_pair, serialize_public_key, encrypt_private_key, secret_from_user_info
+from constants import USER_SECRET_KEY_LENGTH
 
 def query_fields(cls):
     return ', '.join(f.name for f in fields(cls))
@@ -38,6 +44,19 @@ class Person:
             f'INSERT INTO persons ({insert_fields(self)}) VALUES ({parameter_markers(self)})',
             (self.name, self.fullname, self.public_key, self.encrypted_private_key, self.secret_key_hash)
         )
+
+    # creates a new user, and returns the secret key used to generate that user; equivalent to user_id and password
+    @classmethod
+    def new(cls, conn, name, fullname):
+        private_key, public_key = generate_key_pair()
+        public_key_str = serialize_public_key(public_key)
+        
+        pw = os.urandom(USER_SECRET_KEY_LENGTH)
+        encrypted_private_key = encrypt_private_key(private_key, pw)
+        secret_key_hash = bcrypt.hashpw(pw, bcrypt.gensalt()).decode()
+
+        cls(name, fullname, public_key_str, encrypted_private_key, secret_key_hash).insert(conn)
+        return secret_from_user_info(conn.lastrowid, pw)
 
 @dataclass
 class Response:
