@@ -1,14 +1,27 @@
 :root {
-    --text-color: #7490FF;
-    --app-bg: #F9F4F0;
-    --inner-bg: #E4EAFF;
-    --gradient-1: #FF836D;
-    --gradient-2: #FFE0FF;
-    --gradient-3: #FF7DFF;
+    --text-color: #014751;
+    --app-bg: #f8f8ff;
+    --inner-bg: #C6D4DC;
+    --gradient-1: #aff8c8;
+    --gradient-2: #f8f8ff;
+    --gradient-3: #014751;
+    --warning-color: #ffeeb4;
     --danger-color: #FF380B;
     --flash-color: #FF836D;
-    --link: #7490FF;
-    --link-hover: #4167FF;
+    --link: #014751;
+    --link-hover: #0f2830;
+
+    --unicorn-text-color: #7490FF;
+    --unicorn-app-bg: #F9F4F0;
+    --unicorn-inner-bg: #E4EAFF;
+    --unicorn-gradient-1: #FF836D;
+    --unicorn-gradient-2: #FFE0FF;
+    --unicorn-gradient-3: #FF7DFF;
+    --unicorn-warning-color: #FFE0FF;
+    --unicorn-danger-color: #FF380B;
+    --unicorn-flash-color: #FF836D;
+    --unicorn-link: #7490FF;
+    --unicorn-link-hover: #4167FF;
 }
 
 /* General styles */
@@ -26,7 +39,7 @@ body, html {
 }
 
 .app-frame {
-    background-color: var(--app-bg);
+    background-color: var(--inner-bg);
     border-radius: 20px;
     padding: 20px;
     width: 90%;
@@ -63,6 +76,13 @@ body, html {
 }
 
 h1 {
+    font-family: 'Geneva', sans-serif;
+    font-size: 2.5em;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.h1-unicorn {
     font-family: 'Georgia', serif;
     font-style: italic;
     font-size: 2.5em;
@@ -147,12 +167,12 @@ h2 {
 }
 
 .modal-content {
-    background-color: var(--app-bg);
+    background-color: var(--inner-bg);
     margin: 15% auto;
     padding: 20px;
     border-radius: 10px;
     width: 80%;
-    max-width: 2000px;
+    max-width: 600px;
 }
 
 .modal-content p {
@@ -309,7 +329,7 @@ label {
 }
 
 .warning-message {
-    background-color: var(--gradient-2);
+    background-color: var(--warning-color);
     padding: 1rem;
     border-radius: 5px;
     margin-bottom: 1.5rem;

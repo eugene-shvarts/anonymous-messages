@@ -41,12 +41,9 @@ questions.sort(key=lambda x: question_labels.index(x.label))
 questionmap = { q.id: q for q in all_questions }
 
 ## Auxiliaries
-modal_text = """You can provide anonymous reflections to your fellow unicorns!
-When we meet each other so deeply, and so briefly, it can be powerful, sweet, and perhaps transformational to understand how we showed up.
+modal_text = """Leave a reflection! It's totally anonymous unless you reveal yourself.
 
-Click through anyone's photo to leave reflections for them, and answer whichever questions you want to.
-
-To view reflections left for you, click "My reflections", or go to unicornparade.xyz/me"""
+Click through a photo, and answer whichever questions you want to."""
 
 def error_return(**metas):
     err_str = format_exc()

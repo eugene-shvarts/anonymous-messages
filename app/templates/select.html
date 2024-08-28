@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unicorn Reflections</title>
+    <title>Leave a Reflection</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter@1&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
@@ -14,11 +14,11 @@
 </head>
 <body>
     <div class="nav-buttons">
-        <a href="{{ url_for('get_me') }}" class="nav-button">My reflections</a>
+        <!-- <a href="{{ url_for('get_me') }}" class="nav-button">My reflections</a> -->
     </div>
 
     <div class="app-frame">
-        <h1>Unicorn Reflections</h1>
+        <h1>Leave a Reflection</h1>
         <button class="info-button" onclick="openModal()">?</button>
         <div class="image-grid">
             {% for image in images %}
