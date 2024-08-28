@@ -28,9 +28,9 @@ op run --env-file app/op.dev.env -- flask --app app/app.py --debug run
 ### Usage without 1PW
 Copy `app/op.dev.env` to a new file `app/secrets.env`, and fill in the values with the plaintext for the appropriate secrets (be careful!). For a first-time initialization, run
 ```
-(set -a; source secrets.env; set +a; python scripts/db-initialization.py)
+(set -a; source app/secrets.env; set +a; python scripts/db-initialization.py)
 ```
 to initialize from an empty MySQL db, and add a test user. Then you can run locally with
 ```
-(set -a; source secrets.env; set +a; flask --app app/app.py --debug run)
+(set -a; source app/secrets.env; set +a; flask --app app/app.py --debug run)
 ```
