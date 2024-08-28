@@ -1,8 +1,8 @@
 import os
 
 import bcrypt
-
 from dataclasses import dataclass, fields
+
 from cipher import generate_key_pair, serialize_public_key, encrypt_private_key, secret_from_user_info
 from constants import USER_SECRET_KEY_LENGTH
 

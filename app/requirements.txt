@@ -1,0 +1,15 @@
+bcrypt==4.2.0
+blinker==1.8.2
+cffi==1.17.0
+click==8.1.7
+cryptography==43.0.0
+dataclasses==0.6
+Flask==3.0.3
+itsdangerous==2.2.0
+Jinja2==3.1.4
+MarkupSafe==2.1.5
+mysqlclient==2.2.4
+pycparser==2.22
+python-dotenv==1.0.1
+tqdm==4.66.5
+Werkzeug==3.0.4

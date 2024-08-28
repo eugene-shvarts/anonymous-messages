@@ -1,6 +1,6 @@
+from base64 import b64encode, b64decode
 import os
 
-from base64 import b64encode, b64decode
 import bcrypt
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
