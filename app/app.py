@@ -23,7 +23,8 @@ mysql_config = {
 }
 
 connctx = ConnectionContext(mysql_config)
-config = Config()
+thisdir = os.path.dirname(os.path.abspath(__file__))
+config = Config(os.path.join(thisdir, 'config.json'))
 
 ## Load questions from the database
 with connctx as conn:
