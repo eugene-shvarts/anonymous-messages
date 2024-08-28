@@ -34,3 +34,5 @@ to initialize from an empty MySQL db, and add a test user. Then you can run loca
 ```
 (set -a; source app/secrets.env; set +a; flask --app app/app.py --debug run)
 ```
+
+In either case, you can then start playing with the app by visiting `127.0.0.1:5000` in your browser (assuming default Flask settings).
