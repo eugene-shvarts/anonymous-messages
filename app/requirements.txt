@@ -3,7 +3,7 @@ blinker==1.8.2
 cffi==1.17.0
 click==8.1.7
 cryptography==43.0.0
-dataclasses==0.6
+dataclasses==0.8
 Flask==3.0.3
 itsdangerous==2.2.0
 Jinja2==3.1.4

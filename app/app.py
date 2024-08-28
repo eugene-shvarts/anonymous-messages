@@ -29,9 +29,20 @@ with connctx as conn:
     all_questions = Question.get_all(conn)
 
 question_labels = [
-    "favorite_memory",
+    "how_long",
+    "how_close",
+    "few_words",
+    "top_strengths",
+    "memory_together",
     "lasting_impact",
+    "grown",
+    "admire",
+    "life_advice",
+    "others_perceive",
+    "better_myself",
+    "change_improve",
     "shared_activity",
+    "resource",
     "anything_else"
 ]
 
