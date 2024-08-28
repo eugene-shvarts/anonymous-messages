@@ -1,5 +1,6 @@
 app/static/*
 !app/static/favicon.ico
+!app/static/style.css
 
 app/secrets.env
 app/credentials
