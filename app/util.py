@@ -1,3 +1,5 @@
+import json
+
 import MySQLdb
 
 class EmptyDeepRef:
@@ -36,3 +38,20 @@ class ConnectionContext:
                 self.cursor = None
             self.conn.close()
             self.conn = None
+
+class Config:
+    def __init__(self, config_file="config.json"):
+        with open(config_file) as f:
+            self.config = json.load(f)
+    
+    def __getitem__(self, key):
+        return self.config[key]
+
+    def __contains__(self, key):
+        return key in self.config
+
+    def __str__(self):
+        return str(self.config)
+
+    def __repr__(self):
+        return repr(self.config)

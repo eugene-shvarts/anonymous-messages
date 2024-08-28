@@ -4,6 +4,7 @@ app/static/*
 
 app/secrets.env
 app/credentials
+app/config.json
 
 data/
 

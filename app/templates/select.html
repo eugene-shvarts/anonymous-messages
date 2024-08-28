@@ -29,7 +29,9 @@
 </head>
 <body>
     <div class="nav-buttons">
-        <!-- <a href="{{ url_for('get_me') }}" class="nav-button">My reflections</a> -->
+        {% if full_nav %}
+            <a href="{{ url_for('get_me') }}" class="nav-button">My reflections</a>
+        {% endif %}
     </div>
 
     <div class="app-frame">

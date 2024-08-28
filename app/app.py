@@ -1,5 +1,5 @@
 from itertools import groupby
-import os
+import os, json
 from traceback import format_exc
 
 from flask import Flask, render_template, request, send_from_directory, jsonify, session, redirect, url_for, flash
@@ -8,7 +8,7 @@ import bcrypt
 from cipher import deserialize_public_key, hybrid_encrypt, hybrid_decrypt, user_info_from_secret, secret_from_user_info, decrypt_private_key, encrypt_private_key
 from constants import MYSQL_PORT, USER_SECRET_KEY_LENGTH
 from model import Person, Response, Question
-from util import ConnectionContext
+from util import ConnectionContext, Config
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
@@ -23,29 +23,13 @@ mysql_config = {
 }
 
 connctx = ConnectionContext(mysql_config)
+config = Config()
 
 ## Load questions from the database
 with connctx as conn:
     all_questions = Question.get_all(conn)
 
-question_labels = [
-    "how_long",
-    "how_close",
-    "few_words",
-    "top_strengths",
-    "memory_together",
-    "lasting_impact",
-    "grown",
-    "admire",
-    "life_advice",
-    "others_perceive",
-    "better_myself",
-    "change_improve",
-    "shared_activity",
-    "resource",
-    "anything_else"
-]
-
+question_labels = config['questions']
 questions = [ q for q in all_questions if q.label in question_labels ]
 questions.sort(key=lambda x: question_labels.index(x.label))
 
@@ -76,7 +60,7 @@ def home():
             ],
             key=lambda x: x['firstname']
         )
-        return render_template('select.html', images=images, modal_text=modal_text.replace('\n', '<br>'))
+        return render_template('select.html', images=images, modal_text=modal_text.replace('\n', '<br>'), full_nav=config['full_nav'])
     except:
         return error_return()
 
@@ -97,7 +81,7 @@ def people(full_name):
             return response_text
         else:
             # Render the form page
-            return render_template('person.html', full_name=full_name, questions=questions)
+            return render_template('person.html', full_name=full_name, questions=questions, full_nav=config['full_nav'])
     except:
         return error_return()
     
