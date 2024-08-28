@@ -90,20 +90,13 @@ def hybrid_encrypt(data: str, public_key: X25519PublicKey) -> str:
     # note: only 31 bytes are actual entropy. bcrypt only gives 31 and change
     derived_key = bcrypt.hashpw(shared_secret, bcrypt_salt)[-32:] 
 
-    # Generate and encrypt a symmetric key
-    key_nonce = os.urandom(12) # 12 bytes
-    symmetric_key = os.urandom(32)  # 256-bit key for AES
-    encrypted_symmetric_key = AESGCM(derived_key).encrypt(key_nonce, symmetric_key, None)
-
     # Encrypt the data with AES
-    data_nonce = os.urandom(12)  # 12 bytes
-    encrypted_data = AESGCM(symmetric_key).encrypt(data_nonce, data.encode(), None)
+    nonce = os.urandom(12)  # 12 bytes
+    encrypted_data = AESGCM(derived_key).encrypt(nonce, data.encode(), None)
 
     # Combine all components
     return b64encode(
-        shared_pubkey + bcrypt_salt +
-        key_nonce + encrypted_symmetric_key +
-        data_nonce + encrypted_data
+        shared_pubkey + bcrypt_salt + nonce + encrypted_data
     ).decode()
 
 def hybrid_decrypt(encrypted_data: str, private_key: X25519PrivateKey) -> str:
@@ -113,10 +106,8 @@ def hybrid_decrypt(encrypted_data: str, private_key: X25519PrivateKey) -> str:
     # Split the components
     shared_pubkey_bytes = decoded[:32]
     bcrypt_salt = decoded[32:61]
-    key_nonce = decoded[61:73]
-    encrypted_symmetric_key = decoded[73:121]
-    data_nonce = decoded[121:133]
-    encrypted_data = decoded[133:]
+    nonce = decoded[61:73]
+    encrypted_data = decoded[73:]
 
     # Perform X25519 key exchange
     shared_pubkey = X25519PublicKey.from_public_bytes(shared_pubkey_bytes)
@@ -125,11 +116,8 @@ def hybrid_decrypt(encrypted_data: str, private_key: X25519PrivateKey) -> str:
     # Derive the same key using bcrypt
     derived_key = bcrypt.hashpw(shared_secret, bcrypt_salt)[-32:]
 
-    # Decrypt the symmetric key
-    symmetric_key = AESGCM(derived_key).decrypt(key_nonce, encrypted_symmetric_key, None)
-
     # Decrypt the data with AES
-    decrypted_data = AESGCM(symmetric_key).decrypt(data_nonce, encrypted_data, None)
+    decrypted_data = AESGCM(derived_key).decrypt(nonce, encrypted_data, None)
 
     return decrypted_data.decode()
 
